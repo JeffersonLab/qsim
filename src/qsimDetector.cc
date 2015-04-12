@@ -75,21 +75,6 @@ G4bool qsimDetector::ProcessHits( G4Step *step, G4TouchableHistory *){
 	thishit->fE = track->GetTotalEnergy();
         //
         thishit->fLambda = 1.239824/track->GetTotalEnergy();
-        myfile.open ("/home/bulacarl/solid/qsim/build/PMTQE.txt");
-        if (myfile.is_open()) {
-          while (!myfile.eof()) {
-          myfile >> lambda >> QE;
-           if (1.239824/track->GetTotalEnergy() >= 1000*lambda){
-           //G4cout << 1.239824/track->GetTotalEnergy() << "\t" << 1000*lambda << "\t" << QE << G4endl;
-           thisLambda = 1000*lambda;
-           thisQE = QE;  
-           }
-          }
-        }
-        myfile.close();
-        //G4cout << thisLambda << "\t" << thisQE << G4endl;
-        thishit->fEff = thisQE/100;
-        //
 	thishit->fM = track->GetDefinition()->GetPDGMass();
 
 	thishit->fTrID  = track->GetTrackID();
