@@ -2,6 +2,9 @@
 #include <math.h>
 
 #include "G4ParticleTable.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4PhysicalConstants.hh"
+
 
 qsimEvent::qsimEvent(){
     Reset();

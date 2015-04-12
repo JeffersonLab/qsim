@@ -1,5 +1,7 @@
 
 #include "qsimPrimaryGeneratorAction.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4PhysicalConstants.hh"
 
 #include "G4Event.hh"
 #include "G4ParticleGun.hh"
@@ -32,14 +34,14 @@ qsimPrimaryGeneratorAction::qsimPrimaryGeneratorAction() {
 
   fDefaultEvent = new qsimEvent();
 
-  fXmin =  -7.0*cm;
-  fXmax =   7.0*cm;
+  fXmin =  -0.0*cm;
+  fXmax =   0.0*cm;
 
-  fYmin =  -1.75*cm;
-  fYmax =   1.75*cm;
+  fYmin =  -0.0*cm;
+  fYmax =   0.0*cm;
 
   fZmin =  -65.0*cm;
-  fZmax =  -47.0*cm;
+  fZmax =  -65.0*cm;
 
   fEmin = 220*MeV;
   fEmax = 100000*MeV;
@@ -67,12 +69,7 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
     fDefaultEvent->Reset();
 
     // Set data //////////////////////////////////
-    // Magic happens here
 
-    TFile *f1 = new TFile("../build/test.root");
-    char histname1[256] = "keMuon";
-    TH1F *keMuon_distribution = (TH1F*)f1->Get(histname1);
-    keMuon_distribution->GetXaxis()->SetRange(log10(fEmin),log10(fEmax));
 
     double xPos = CLHEP::RandFlat::shoot( fXmin, fXmax );
     double yPos = CLHEP::RandFlat::shoot( fYmin, fYmax );
@@ -83,10 +80,8 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
     double phi = CLHEP::RandFlat::shoot( fPhiMin, fPhiMax );
     double mass = fParticleGun->GetParticleDefinition()->GetPDGMass();
     //double E = CLHEP::RandFlat::shoot( fEmin, fEmax );
-    double E = pow(keMuon_distribution->GetRandom(),10);
+    double E = 250*MeV;
    
-    f1->Close();
-    delete f1;
     
     assert( E > 0.0 );
     assert( E > mass );

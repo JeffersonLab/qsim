@@ -18,6 +18,8 @@
 #include "CLHEP/Random/RandFlat.h"
 #include "CLHEP/Random/RandGauss.h"
 
+#include "G4SystemOfUnits.hh"
+
 qsimIO::qsimIO(){
     fTree = NULL;
     InitializeTree();
