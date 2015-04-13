@@ -23,6 +23,8 @@
 #include <TRandom.h>
 //
 
+#include "G4ParticleTable.hh"
+
 //
 static std::ifstream myfile;
 //
@@ -31,6 +33,10 @@ qsimPrimaryGeneratorAction::qsimPrimaryGeneratorAction() {
   G4int n_particle = 1;
   fParticleGun = new G4ParticleGun(n_particle);
 
+  G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
+  G4ParticleDefinition* particle
+      = particleTable->FindParticle("e-");
+  fParticleGun->SetParticleDefinition(particle);
 
   fDefaultEvent = new qsimEvent();
 
@@ -46,10 +52,10 @@ qsimPrimaryGeneratorAction::qsimPrimaryGeneratorAction() {
   fEmin = 220*MeV;
   fEmax = 100000*MeV;
 
-  fThetaMin = 40.0*deg;
-  fThetaMax = 50.0*deg;
-  fPhiMin = -5.0*deg;
-  fPhiMax = 5.0*deg;
+  fThetaMin = 0.0*deg;
+  fThetaMax = 0.0*deg;
+  fPhiMin = 0*deg;
+  fPhiMax = 0*deg;
 }
 
 qsimPrimaryGeneratorAction::~qsimPrimaryGeneratorAction() {
