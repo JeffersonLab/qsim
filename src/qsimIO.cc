@@ -97,7 +97,7 @@ void qsimIO::InitializeTree(){
     fTree->Branch("sci.n",    &fNScintDetHit,     "sci.n/I");
     fTree->Branch("sci.det",  &fScintDetHit_det,  "sci.det[sci.n]/I");
     fTree->Branch("sci.id",  &fScintDetHit_id,  "sci.id[sci.n]/I");
-    fTree->Branch("sci.edep",  &fScintDetHit_edep,  "sci.id[sci.n]/D");
+    fTree->Branch("sci.edep",  &fScintDetHit_edep,  "sci.edep[sci.n]/D");
 
     return;
 }
@@ -174,7 +174,7 @@ void qsimIO::AddDetectorHit(qsimDetectorHit *hit){
     //printf("%d hits in detector\n", fNDetHit );
 
     if( n >= __IO_MAXHIT ){
-//	G4cerr << "WARNING: " << __PRETTY_FUNCTION__ << " line " << __LINE__ << ":  Buffer size exceeded!" << G4endl;
+	G4cerr << "WARNING: " << __PRETTY_FUNCTION__ << " line " << __LINE__ << ":  Buffer size exceeded!" << G4endl;
 	return;
     }
 

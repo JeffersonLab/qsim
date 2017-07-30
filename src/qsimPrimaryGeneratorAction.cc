@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <cassert>
 
 #include <TFile.h>
 #include <TH2.h>
@@ -45,6 +46,7 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 	// 1 is beam mode
 	// 2 is PREX mode
 	if (fSourceMode==0){
+	  /*
 		fXmin =  -5.0*cm;
 		fXmax =  5.*cm;
 
@@ -56,6 +58,20 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 	
 		fthetaMin = 0.0*deg;
 		fthetaMax = 90.0*deg;
+	  */
+	  //for CosmicPi tests
+		fXmin =  -1.0*mm;
+		fXmax =  1.*mm;
+
+		fYmin =  -1.*mm;
+		fYmax =  1.*mm;
+
+		fEmin = 800.0*MeV;
+		fEmax = 10.0*GeV;
+	
+		fthetaMin = 0.0*deg;
+		fthetaMax = 10.0*deg;
+	  
 	}
 	else if (fSourceMode==1) {
 		fXmin =  -0.0*cm; // pinpoint at Mainz
@@ -89,7 +105,8 @@ qsimPrimaryGeneratorAction::qsimPrimaryGeneratorAction() {
   fParticleGun = new G4ParticleGun(n_particle);
   fDefaultEvent = new qsimEvent();
 
-	fZ = -0.52*m;
+  //fZ = -0.52*m;//original values from qsim
+  fZ = -0.2*m;//for cosmicPi setup
 }
 
 

@@ -1,4 +1,5 @@
 #include "qsimDetectorConstruction.hh"
+#include "qsimMaterials.hh"
 #include "G4SystemOfUnits.hh"
 #include "qsimDetector.hh"
 #include "qsimScintDetector.hh"
@@ -22,6 +23,11 @@
 #include "G4OpticalSurface.hh"
 #include "G4SubtractionSolid.hh"
 #include "G4VisAttributes.hh"
+
+#include "G4UserLimits.hh"
+#include "G4PhysicalConstants.hh"
+#include "G4UnitsTable.hh"
+#include "G4SystemOfUnits.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -75,6 +81,18 @@ qsimDetectorConstruction::qsimDetectorConstruction() {
     rin = cone_rmin2;  // normally 2.5*cm;
     rout = rin+.05*cm;
     lngth = 1.6*cm;  // PMT dist. = 2*lngth +1cm  (10.4 == 4.5, 6.8 == 2.9)
+
+
+    //for standalone scint
+    materials = NULL;
+    
+    scintX = 6.5*cm;
+    scintY = 6.5*cm;
+    scintZ = 1.0*cm;
+    
+    pmtLength = 0.1*cm;
+    
+    UpdateGeometryParameters();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -84,7 +102,23 @@ qsimDetectorConstruction::~qsimDetectorConstruction(){;}
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
-    
+  materials = qsimMaterials::GetInstance();
+  detMaterial = FindMaterial("G4_PLASTIC_SC_VINYLTOLUENE");//EJ-200
+  pmtMaterial = FindMaterial("G4_AIR");
+  wrapMaterial = FindMaterial("G4_Galactic");
+  //pmtMaterial = FindMaterial("BK7");
+  //pmtMaterial = FindMaterial("G4_Galactic");
+  //by varing the routine I can swithc between qsim std or cosmicPi geometry
+  //return qsimConstruct();
+  return cosmicPiConstruct();
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+
+
+G4VPhysicalVolume* qsimDetectorConstruction::qsimConstruct(){
+      
     // Define materials
     
     G4double a, z, density;
@@ -245,6 +279,12 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     det_x = 15*cm;
     det_y = 6*cm;
     det_z = 6*cm;
+
+    //for cosmicPi
+    //det_x = 1*cm;
+    //det_y = 65*cm;
+    //det_z = 1*m;
+    
     
     G4Box* world_box = new G4Box("World",world_x,world_y,world_z);
     
@@ -510,10 +550,192 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     return world_phys;
 }
 
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+G4VPhysicalVolume* qsimDetectorConstruction::cosmicPiConstruct(){
+    // Clean old geometry, if any
+    //G4GeometryManager::GetInstance()->OpenGeometry();
+    //G4PhysicalVolumeStore::GetInstance()->Clean();
+    //G4LogicalVolumeStore::GetInstance()->Clean();
+    //G4SolidStore::GetInstance()->Clean();
+    
+    // Want to check the overlaps (could turn this off once debuged)
+    G4bool fCheckOverlap = true;
 
+    PrintParameters();
     
+    //--------------------------------------------------
+    // World
+    //--------------------------------------------------
     
+    solidWorld = new G4Box("World", worldSizeX/2, worldSizeY/2, worldSizeZ/2);
+    logicWorld = new G4LogicalVolume(solidWorld,FindMaterial("G4_AIR"),"World");//FindMaterial("G4_Galactic")
+    physiWorld = new G4PVPlacement(0,G4ThreeVector(), logicWorld, "World", 0, false, fCheckOverlap);
+    
+    //--------------------------------------------------
+    // Scintillator
+    //--------------------------------------------------
+    solidScintillator = new G4Box("Scintillator",scintX/2,scintY/2,scintZ/2);
+    logicScintillator = new G4LogicalVolume(solidScintillator,detMaterial,"Scintillator");
+    physiScintillator = new G4PVPlacement(0, G4ThreeVector(), logicScintillator, "Scintillator", logicWorld, false,0, fCheckOverlap);
+    qsimScintDetector* scintSD = new qsimScintDetector("scintSD", 10);
+    
+        
+    //--------------------------------------------------
+    // PhotonDet (Sensitive Detector)
+    //--------------------------------------------------
+    
+    // Physical Construction
+    G4double zOrig = (scintZ+pmtLength)/2;
+    solidPhotonDet = new G4Box("PhotonDet",scintX/2,scintY/2,pmtLength/2);
+    logicPhotonDet = new G4LogicalVolume(solidPhotonDet,pmtMaterial, "PhotonDet_bottom");
+    physiPhotonDet = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,zOrig), logicPhotonDet, "PhotonDet_bottom", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD = new qsimDetector("pmtSD", 1);
+
+    G4RotationMatrix* photdetrot = new G4RotationMatrix;
+    G4double xOrig = (scintX+pmtLength)/2;
+    photdetrot->rotateY(90.*deg);    
+    solidPhotonDet1 = new G4Box("PhotonDet1",scintZ/2,scintY/2,pmtLength/2);
+    logicPhotonDet1 = new G4LogicalVolume(solidPhotonDet1,wrapMaterial, "PhotonDet_Xpos");
+    physiPhotonDet1 = new G4PVPlacement(photdetrot,G4ThreeVector(xOrig,0.0,0.0), logicPhotonDet1, "PhotonDet_Xpos", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD1 = new qsimDetector("pmtSD1", 2);
+    
+    solidPhotonDet2 = new G4Box("PhotonDet2",scintZ/2,scintY/2,pmtLength/2);
+    logicPhotonDet2 = new G4LogicalVolume(solidPhotonDet2,wrapMaterial, "PhotonDet_Xneg");
+    physiPhotonDet2 = new G4PVPlacement(photdetrot,G4ThreeVector(-1*xOrig,0.0,0.0), logicPhotonDet2, "PhotonDet_Xneg", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD2 = new qsimDetector("pmtSD2", 3);
+    
+    G4double yOrig = (scintY+pmtLength)/2;
+    G4RotationMatrix* photdetrot1 = new G4RotationMatrix;
+    photdetrot1->rotateX(90.*deg);
+    //photdetrot1->rotateZ(90.*deg);
+    solidPhotonDet3 = new G4Box("PhotonDet3",scintX/2,scintZ/2,pmtLength/2);
+    logicPhotonDet3 = new G4LogicalVolume(solidPhotonDet3,wrapMaterial, "PhotonDet_Ypos");
+    physiPhotonDet3 = new G4PVPlacement(photdetrot1,G4ThreeVector(0.0,yOrig,0.0), logicPhotonDet3, "PhotonDet_Ypos", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD3 = new qsimDetector("pmtSD3", 4);
+
+    solidPhotonDet4 = new G4Box("PhotonDet4",scintX/2,scintZ/2,pmtLength/2);
+    logicPhotonDet4 = new G4LogicalVolume(solidPhotonDet4,wrapMaterial, "PhotonDet_Ypos");
+    physiPhotonDet4 = new G4PVPlacement(photdetrot1,G4ThreeVector(0.0,-1*yOrig,0.0), logicPhotonDet4, "PhotonDet_Yneg", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD4 = new qsimDetector("pmtSD4", 5);
+
+    solidPhotonDet5 = new G4Box("PhotonDet5",scintX/2,scintY/2,pmtLength/2);
+    logicPhotonDet5 = new G4LogicalVolume(solidPhotonDet5,wrapMaterial, "PhotonDet_top");
+    physiPhotonDet5 = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,-1*zOrig), logicPhotonDet5, "PhotonDet_top", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD5 = new qsimDetector("pmtSD5", 6);
+    
+    G4SDManager* SDman = G4SDManager::GetSDMpointer();
+    SDman->AddNewDetector(scintSD);
+    logicScintillator->SetSensitiveDetector(scintSD);
+    SDman->AddNewDetector(pmtSD5);
+    logicPhotonDet5->SetSensitiveDetector(pmtSD5);
+    
+    SDman->AddNewDetector(pmtSD);
+    logicPhotonDet->SetSensitiveDetector(pmtSD);
+    SDman->AddNewDetector(pmtSD1);
+    logicPhotonDet1->SetSensitiveDetector(pmtSD1);
+    SDman->AddNewDetector(pmtSD2);
+    logicPhotonDet2->SetSensitiveDetector(pmtSD2);
+    SDman->AddNewDetector(pmtSD3);
+    logicPhotonDet3->SetSensitiveDetector(pmtSD3);
+    SDman->AddNewDetector(pmtSD4);
+    logicPhotonDet4->SetSensitiveDetector(pmtSD4);
+     
+
+   PrintParameters();
+   return physiWorld;
+
+}
+
+
+void qsimDetectorConstruction::PrintParameters(){
+    G4cout<<"Scintillator Slab:"
+    <<"\n\t Thickness: "<<G4BestUnit(scintX,"Length")
+    <<"\n\t Length: "<<G4BestUnit(scintZ,"Length")
+    <<"\n\t Width: "<<G4BestUnit(scintY,"Length")
+    <<"\n\t Material:"<<detMaterial->GetName()
+    <<"PMT:"
+    <<"\n\t Length: "<<G4BestUnit(pmtLength,"Length")
+    <<"\n\t Material:"<<pmtMaterial->GetName()
+    <<G4endl;
+    
+}
+/**
+ * Sets the material of the scintillating slab
+ */
+void qsimDetectorConstruction::SetScintMaterial(G4String matName){
+    detMaterial = FindMaterial(matName);
+}
+/**
+ * Sets the material of the PMT
+ */
+void qsimDetectorConstruction::SetPMTMaterial(G4String matName){
+    pmtMaterial = FindMaterial(matName);
+}
+/**
+ Updates the Geometry by deleting the old geoemtry and then starting over
+ */
+void qsimDetectorConstruction::UpdateGeometry()
+{
+ //   if (!physiWorld) return;
+    
+    // clean-up previous geometry
+  /*
+    G4GeometryManager::GetInstance()->OpenGeometry();
+    G4PhysicalVolumeStore::GetInstance()->Clean();
+    G4LogicalVolumeStore::GetInstance()->Clean();
+    G4SolidStore::GetInstance()->Clean();
+    G4LogicalSkinSurface::CleanSurfaceTable();
+    G4LogicalBorderSurface::CleanSurfaceTable();
+    
+    //define new one
+    UpdateGeometryParameters();
+    
+    G4RunManager::GetRunManager()->DefineWorldVolume(ConstructDetector());
+    G4RunManager::GetRunManager()->GeometryHasBeenModified();
+    G4RunManager::GetRunManager()->PhysicsHasBeenModified();
+    G4RegionStore::GetInstance()->UpdateMaterialList(physiWorld);
+  */
+}
+
+void qsimDetectorConstruction::UpdateGeometryParameters()
+{
+    worldSizeX = scintX + 1*m;
+    worldSizeY = scintY + 1*m;
+    worldSizeZ = scintZ + 2*pmtLength+5*m;
+    
+}
+
+void qsimDetectorConstruction::SetScintThickness(G4double val){
+    scintX = val;
+}
+
+/**
+ Sets the polish of the photon detector
+ @param polish (0 < polish <= 1) a polish of 1.0 is a perfect mirror surface
+ */
+void qsimDetectorConstruction::SetPhotonDetPolish(G4double polish)
+{
+    pmtPolish = polish;
+}
+
+/**
+ Sets the reflectivity of the photon dector
+ @param reflectivity (0 < refelctivity <= 1) - a reflectivtiy of 1 is a perfect mirror
+ */
+void qsimDetectorConstruction::SetPhotonDetReflectivity(G4double reflectivity)
+{
+    pmtReflectivity = reflectivity;
+}
+
+/**
+ * Gets material
+ * @param name of the material
+ * @return a pointer to the material, or NULL if not found
+ */
+G4Material* qsimDetectorConstruction::FindMaterial(G4String name) {
+    
+    G4Material* pttoMaterial = materials->GetMaterial(name);
+    return pttoMaterial;
+}
     
     
 

@@ -42,7 +42,7 @@ G4bool qsimDetector::ProcessHits( G4Step *step, G4TouchableHistory *){
 
 //    G4Material* material = track->GetMaterial();
 
-//    printf("Standard detector %d hit by %s!\n", fDetNo, track->GetParticleDefinition()->GetParticleName().data());
+    //printf("Standard detector %d hit by %s! copy ID %d \n", fDetNo, track->GetParticleDefinition()->GetParticleName().data(),copyID);
 
 //    G4double edep = step->GetTotalEnergyDeposit();
 
