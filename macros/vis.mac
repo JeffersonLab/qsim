@@ -1,4 +1,8 @@
-/vis/open OGLIQt 1200x600
+#OGLIQt would not generate the scene tree
+#/vis/open OGLIQt 1200x600
+#use OGL to generate the scene tree
+/vis/open OGL 600x600-0+0
+
 
 /control/execute vis/vis.mac
 
