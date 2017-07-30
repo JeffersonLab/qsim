@@ -86,11 +86,19 @@ FIXME:  Add to verbosity responsiveness
   G4EmSaturation* emSaturation = G4LossTableManager::Instance()->EmSaturation();
   theScintProcess->AddSaturation(emSaturation);
 
-  auto aParticleIterator = GetParticleIterator(); 
-  aParticleIterator->reset();
+  //auto aParticleIterator = GetParticleIterator(); 
+  //aParticleIterator->reset();
+  GetParticleIterator()->reset();
   while ( (*aParticleIterator)() ){
-
-    G4ParticleDefinition* particle = aParticleIterator->value();
+    //=======
+  //aParticleIterator->reset();
+  //replace aParticleIterator with GetParticleIterator()
+    /*
+  GetParticleIterator()->reset();
+  while ( (*GetParticleIterator())() ){
+>>>>>>> replace aParticleIterator with GetParticleIterator()
+    */
+    G4ParticleDefinition* particle =  GetParticleIterator()->value();
     G4String particleName = particle->GetParticleName();
 
     pManager = particle->GetProcessManager();
