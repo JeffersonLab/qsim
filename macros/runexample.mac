@@ -1,7 +1,7 @@
 # Example run macro for qsim
 
 # Set run mode
-/qsim/fDetMode 1 
+/qsim/fDetMode 0 
 /qsim/fStandMode 0 
 /qsim/fSourceMode 2 
 
@@ -21,4 +21,4 @@
 
 /gun/particle e- 
 
-/run/beamOn 1000
+/run/beamOn 100000

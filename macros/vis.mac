@@ -1,4 +1,12 @@
-/vis/open OGLIQt 1200x600
+#OGLIQt would not generate the scene tree
+#/vis/open OGLIQt 1200x600
+#use OGL to generate the scene tree
+/vis/open OGL 600x600-0+0
+
+/qsim/fDetMode 1 
+/qsim/fStandMode 0 
+/qsim/fSourceMode 0 
+/gun/particle mu-
 
 /control/execute vis/vis.mac
 

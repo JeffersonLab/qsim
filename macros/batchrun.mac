@@ -1,14 +1,16 @@
 # Batch mode running for qsim
 
-/qsim/filename qsim_output.root 
+#/qsim/filename qsim_output.root
+/qsim/filename qsim_cosmic_mu_light_bottom.root
 
-/qsim/seed 50
+#/qsim/seed 50
 
 /gun/particle mu-
+#/gun/particle e-
 
 /qsim/fStandMode 0
 /qsim/fSourceMode 0
 
 /run/initialize
 
-/run/beamOn 1000000
+/run/beamOn 10000
