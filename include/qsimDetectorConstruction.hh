@@ -12,7 +12,10 @@
 #include "G4RotationMatrix.hh"
 
 class G4Box;
+class G4Trd;
+class G4VSolid;
 class qsimMaterials;
+
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -73,6 +76,20 @@ class qsimDetectorConstruction : public G4VUserDetectorConstruction
     G4Box*              solidWorld;
     G4LogicalVolume*    logicWorld;
     G4VPhysicalVolume*  physiWorld;
+
+    G4Trd*              solidLightGuide1;
+    G4LogicalVolume*    logicLightGuide1;
+    G4VPhysicalVolume*  physiLightGuide1;  
+
+    G4Trd*              solidLightGuide2;
+    G4LogicalVolume*    logicLightGuide2;
+    G4VPhysicalVolume*  physiLightGuide2;  
+
+    G4Trd*              solidLightGuide1_sub;
+    G4VSolid*           solidLightGuide1_subtract;
+
+    G4Trd*              solidLightGuide2_sub;
+    G4VSolid*           solidLightGuide2_subtract;
     
     G4Box*              solidScintillator;
     G4LogicalVolume*    logicScintillator;

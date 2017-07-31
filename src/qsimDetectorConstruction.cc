@@ -584,25 +584,56 @@ G4VPhysicalVolume* qsimDetectorConstruction::cosmicPiConstruct(){
     //--------------------------------------------------
     
     // Physical Construction
+
+    //set the light guides
+    //FIX ME change the light guide to mirror material????
+    G4RotationMatrix* LightGuiderot1 = new G4RotationMatrix;
+    G4double LightGuideLength = 3.0*cm;
+    G4double LightGuideOutX = 1.0*cm;
+    G4double LightGuideOutY = 1.0*cm;
+    G4double xLGOrig1 = (scintX+LightGuideLength)/2;
+    //LightGuiderot1->rotateX(90.*deg);
+    LightGuiderot1->rotateZ(90.*deg);
+    LightGuiderot1->rotateX(90.*deg);
+    solidLightGuide1 = new G4Trd("LightGuide1",scintY/2,1.0*cm/2, scintZ/2, scintZ/2,LightGuideLength/2);
+    solidLightGuide1_sub = new G4Trd("LightGuide1_sub",(scintY/2 - 0.1*cm),(1.0*cm/2 - 0.1*cm), (scintZ/2 - 0.1*cm), (scintZ/2 - 0.1*cm),LightGuideLength/2 + 0.1*cm);
+    solidLightGuide1_subtract = new G4SubtractionSolid("LightGuide1_hollow",solidLightGuide1,solidLightGuide1_sub,0,G4ThreeVector(0.,0.,0.));
+    
+    logicLightGuide1 = new G4LogicalVolume(solidLightGuide1_subtract,wrapMaterial, "LightGuide_xpos");
+    physiLightGuide1 = new G4PVPlacement(LightGuiderot1,G4ThreeVector(xLGOrig1,0.0,0.0), logicLightGuide1, "LightGuide_xpos", logicWorld, false, 0, fCheckOverlap);
+
+    
+    solidLightGuide2 = new G4Trd("LightGuide2",1.0*cm/2,scintY/2, scintZ/2, scintZ/2,LightGuideLength/2);
+    solidLightGuide2_sub = new G4Trd("LightGuide2_sub",(1.0*cm/2 - 0.1*cm),(scintY/2 - 0.1*cm), (scintZ/2 - 0.1*cm), (scintZ/2 - 0.1*cm),LightGuideLength/2 + 0.1*cm);
+    solidLightGuide2_subtract = new G4SubtractionSolid("LightGuide2_hollow",solidLightGuide2,solidLightGuide2_sub,0,G4ThreeVector(0.,0.,0.));
+    logicLightGuide2 = new G4LogicalVolume(solidLightGuide2_subtract,wrapMaterial, "LightGuide_xneg");
+    physiLightGuide2 = new G4PVPlacement(LightGuiderot1,G4ThreeVector(-1*xLGOrig1,0.0,0.0), logicLightGuide2, "LightGuide_xneg", logicWorld, false, 0, fCheckOverlap);
+
+    //add temp. wrap materials and detectors around the scint.
+
+    //bottom of the scint. wrap using just vacuum to force total internal reflection inside the scint.
     G4double zOrig = (scintZ+pmtLength)/2;
     solidPhotonDet = new G4Box("PhotonDet",scintX/2,scintY/2,pmtLength/2);
-    logicPhotonDet = new G4LogicalVolume(solidPhotonDet,pmtMaterial, "PhotonDet_bottom");
+    logicPhotonDet = new G4LogicalVolume(solidPhotonDet,wrapMaterial, "PhotonDet_bottom");
     physiPhotonDet = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,zOrig), logicPhotonDet, "PhotonDet_bottom", logicWorld, false, 0, fCheckOverlap);
     qsimDetector* pmtSD = new qsimDetector("pmtSD", 1);
 
+    //add two detectors to measure optical photons
     G4RotationMatrix* photdetrot = new G4RotationMatrix;
-    G4double xOrig = (scintX+pmtLength)/2;
+    G4double xOrig = LightGuideLength + (scintX+pmtLength)/2;
     photdetrot->rotateY(90.*deg);    
-    solidPhotonDet1 = new G4Box("PhotonDet1",scintZ/2,scintY/2,pmtLength/2);
-    logicPhotonDet1 = new G4LogicalVolume(solidPhotonDet1,wrapMaterial, "PhotonDet_Xpos");
+    solidPhotonDet1 = new G4Box("PhotonDet1",LightGuideOutX/2,LightGuideOutY/2,pmtLength/2);
+    logicPhotonDet1 = new G4LogicalVolume(solidPhotonDet1,pmtMaterial, "PhotonDet_Xpos");
     physiPhotonDet1 = new G4PVPlacement(photdetrot,G4ThreeVector(xOrig,0.0,0.0), logicPhotonDet1, "PhotonDet_Xpos", logicWorld, false, 0, fCheckOverlap);
     qsimDetector* pmtSD1 = new qsimDetector("pmtSD1", 2);
     
-    solidPhotonDet2 = new G4Box("PhotonDet2",scintZ/2,scintY/2,pmtLength/2);
-    logicPhotonDet2 = new G4LogicalVolume(solidPhotonDet2,wrapMaterial, "PhotonDet_Xneg");
+    solidPhotonDet2 = new G4Box("PhotonDet2",LightGuideOutX/2,LightGuideOutY/2,pmtLength/2);
+    logicPhotonDet2 = new G4LogicalVolume(solidPhotonDet2,pmtMaterial, "PhotonDet_Xneg");
     physiPhotonDet2 = new G4PVPlacement(photdetrot,G4ThreeVector(-1*xOrig,0.0,0.0), logicPhotonDet2, "PhotonDet_Xneg", logicWorld, false, 0, fCheckOverlap);
     qsimDetector* pmtSD2 = new qsimDetector("pmtSD2", 3);
+
     
+    //more wrapping...
     G4double yOrig = (scintY+pmtLength)/2;
     G4RotationMatrix* photdetrot1 = new G4RotationMatrix;
     photdetrot1->rotateX(90.*deg);
@@ -621,6 +652,9 @@ G4VPhysicalVolume* qsimDetectorConstruction::cosmicPiConstruct(){
     logicPhotonDet5 = new G4LogicalVolume(solidPhotonDet5,wrapMaterial, "PhotonDet_top");
     physiPhotonDet5 = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,-1*zOrig), logicPhotonDet5, "PhotonDet_top", logicWorld, false, 0, fCheckOverlap);
     qsimDetector* pmtSD5 = new qsimDetector("pmtSD5", 6);
+
+
+
     
     G4SDManager* SDman = G4SDManager::GetSDMpointer();
     SDman->AddNewDetector(scintSD);
@@ -639,9 +673,11 @@ G4VPhysicalVolume* qsimDetectorConstruction::cosmicPiConstruct(){
     SDman->AddNewDetector(pmtSD4);
     logicPhotonDet4->SetSensitiveDetector(pmtSD4);
      
-
-   PrintParameters();
-   return physiWorld;
+    G4VisAttributes* motherVisAtt= new G4VisAttributes(G4Colour(1.0,1.0,1.0));
+    motherVisAtt->SetVisibility(false);
+    physiWorld->GetLogicalVolume()->SetVisAttributes(motherVisAtt);
+    PrintParameters();
+    return physiWorld;
 
 }
 
