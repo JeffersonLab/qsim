@@ -89,15 +89,7 @@ FIXME:  Add to verbosity responsiveness
   //auto aParticleIterator = GetParticleIterator(); 
   //aParticleIterator->reset();
   GetParticleIterator()->reset();
-  while ( (*aParticleIterator)() ){
-    //=======
-  //aParticleIterator->reset();
-  //replace aParticleIterator with GetParticleIterator()
-    /*
-  GetParticleIterator()->reset();
   while ( (*GetParticleIterator())() ){
->>>>>>> replace aParticleIterator with GetParticleIterator()
-    */
     G4ParticleDefinition* particle =  GetParticleIterator()->value();
     G4String particleName = particle->GetParticleName();
 
