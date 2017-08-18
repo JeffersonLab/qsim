@@ -297,7 +297,7 @@ void qsimMaterials::SetOpticalPropertiesEJ426(){
 	MPTEJ426->AddConstProperty("SCINTILLATIONYIELD", 72000*MeV);
 	MPTEJ426->AddConstProperty("YIELDRATIO", 1.0);
 	MPTEJ426->AddConstProperty("RESOLUTIONSCALE", 1.0);
-	MPTEJ426->DumpTable();
+	//MPTEJ426->DumpTable();
 	EJ426->SetMaterialPropertiesTable(MPTEJ426);
 }
 /**
@@ -542,7 +542,6 @@ void qsimMaterials::SetOpticalPropertiesPS(){
  * EJ200 Data sheet
  */
 void qsimMaterials::SetOpticalPropertiesEJ200(){
-
 	// Index of Reflection (146 nm to 1570 nm)
 	const G4int nRINDEX = 2;
 	G4double photonEnergyRINDEX[nRINDEX] = {8.5506*eV,0.7973*eV};
@@ -564,10 +563,16 @@ void qsimMaterials::SetOpticalPropertiesEJ200(){
 	MPTEJ200->AddProperty("ABSLENGTH",photonEnergyABS,AbsLengthGlass,nABS);
 	// Setting  Scintillation Properties
 	MPTEJ200->AddProperty("FASTCOMPONENT",photonEnergyEM,emEJ200,nEM);
+	MPTEJ200->AddProperty("SLOWCOMPONENT",photonEnergyEM,emEJ200,nEM);
+	MPTEJ200->AddProperty("WLSCOMPONENT",photonEnergyEM,emEJ200,nEM);
 	MPTEJ200->AddConstProperty("FASTTIMECONSTANT",2.5*ns);      //
+	MPTEJ200->AddConstProperty("SLOWTIMECONSTANT",10*ns);//added along side AddProperty SLOWCOMPONENT
+	MPTEJ200->AddConstProperty("WLSTIMECONSTANT",0.5*ns);//added along side AddProperty WLSCOMPONENT
 	MPTEJ200->AddConstProperty("SCINTILLATIONYIELD", 10200*MeV);
 	MPTEJ200->AddConstProperty("YIELDRATIO", 1.0);
 	MPTEJ200->AddConstProperty("RESOLUTIONSCALE", 1.0);
 	EJ200->SetMaterialPropertiesTable(MPTEJ200);
+        G4cout << "SetOpticalPropertiesEJ200()" << G4endl;
+	MPTEJ200->DumpTable();
 }
 
