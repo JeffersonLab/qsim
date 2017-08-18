@@ -139,6 +139,7 @@ class qsimDetectorConstruction : public G4VUserDetectorConstruction
 
   G4VPhysicalVolume* qsimConstruct();
   G4VPhysicalVolume* cosmicPiConstruct();
+  G4VPhysicalVolume* cosmicPi_LightguideConstruct();
   void UpdateGeometryParameters();
   public:
 	G4double fDetAngle, fQuartzPolish;

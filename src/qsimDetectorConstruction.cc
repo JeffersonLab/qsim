@@ -110,6 +110,9 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
   //pmtMaterial = FindMaterial("G4_Galactic");
   //by varing the routine I can swithc between qsim std or cosmicPi geometry
   //return qsimConstruct();
+  //two light guides on sides
+  //return cosmicPi_LightguideConstruct();
+  //only the scintillator with internal reflection enabled around the scint.
   return cosmicPiConstruct();
 }
 
@@ -550,7 +553,7 @@ G4VPhysicalVolume* qsimDetectorConstruction::qsimConstruct(){
     return world_phys;
 }
 
-G4VPhysicalVolume* qsimDetectorConstruction::cosmicPiConstruct(){
+G4VPhysicalVolume* qsimDetectorConstruction::cosmicPi_LightguideConstruct(){
     // Clean old geometry, if any
     //G4GeometryManager::GetInstance()->OpenGeometry();
     //G4PhysicalVolumeStore::GetInstance()->Clean();
@@ -677,8 +680,105 @@ G4VPhysicalVolume* qsimDetectorConstruction::cosmicPiConstruct(){
     motherVisAtt->SetVisibility(false);
     physiWorld->GetLogicalVolume()->SetVisAttributes(motherVisAtt);
     PrintParameters();
+
     return physiWorld;
 
+}
+
+G4VPhysicalVolume* qsimDetectorConstruction::cosmicPiConstruct(){
+// Clean old geometry, if any
+    //G4GeometryManager::GetInstance()->OpenGeometry();
+    //G4PhysicalVolumeStore::GetInstance()->Clean();
+    //G4LogicalVolumeStore::GetInstance()->Clean();
+    //G4SolidStore::GetInstance()->Clean();
+    
+    // Want to check the overlaps (could turn this off once debuged)
+    G4bool fCheckOverlap = true;
+
+    PrintParameters();
+    
+    //--------------------------------------------------
+    // World
+    //--------------------------------------------------
+    
+    solidWorld = new G4Box("World", worldSizeX/2, worldSizeY/2, worldSizeZ/2);
+    logicWorld = new G4LogicalVolume(solidWorld,FindMaterial("G4_AIR"),"World");//FindMaterial("G4_Galactic")
+    physiWorld = new G4PVPlacement(0,G4ThreeVector(), logicWorld, "World", 0, false, fCheckOverlap);
+    
+    //--------------------------------------------------
+    // Scintillator
+    //--------------------------------------------------
+    solidScintillator = new G4Box("Scintillator",scintX/2,scintY/2,scintZ/2);
+    logicScintillator = new G4LogicalVolume(solidScintillator,detMaterial,"Scintillator");
+    physiScintillator = new G4PVPlacement(0, G4ThreeVector(), logicScintillator, "Scintillator", logicWorld, false,0, fCheckOverlap);
+    qsimScintDetector* scintSD = new qsimScintDetector("scintSD", 10);
+    
+        
+    //--------------------------------------------------
+    // PhotonDet (Sensitive Detector)
+    //--------------------------------------------------
+    
+    // Physical Construction
+    G4double zOrig = (scintZ+pmtLength)/2;
+    solidPhotonDet = new G4Box("PhotonDet",scintX/2,scintY/2,pmtLength/2);
+    logicPhotonDet = new G4LogicalVolume(solidPhotonDet,wrapMaterial , "PhotonDet_bottom");
+    physiPhotonDet = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,zOrig), logicPhotonDet, "PhotonDet_bottom", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD = new qsimDetector("pmtSD", 1);
+
+    G4RotationMatrix* photdetrot = new G4RotationMatrix;
+    G4double xOrig = (scintX+pmtLength)/2;
+    photdetrot->rotateY(90.*deg);    
+    solidPhotonDet1 = new G4Box("PhotonDet1",scintZ/2,scintY/2,pmtLength/2);
+    logicPhotonDet1 = new G4LogicalVolume(solidPhotonDet1,pmtMaterial, "PhotonDet_Xpos");
+    physiPhotonDet1 = new G4PVPlacement(photdetrot,G4ThreeVector(xOrig,0.0,0.0), logicPhotonDet1, "PhotonDet_Xpos", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD1 = new qsimDetector("pmtSD1", 2);
+    
+    solidPhotonDet2 = new G4Box("PhotonDet2",scintZ/2,scintY/2,pmtLength/2);
+    logicPhotonDet2 = new G4LogicalVolume(solidPhotonDet2,pmtMaterial, "PhotonDet_Xneg");
+    physiPhotonDet2 = new G4PVPlacement(photdetrot,G4ThreeVector(-1*xOrig,0.0,0.0), logicPhotonDet2, "PhotonDet_Xneg", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD2 = new qsimDetector("pmtSD2", 3);
+    
+    G4double yOrig = (scintY+pmtLength)/2;
+    G4RotationMatrix* photdetrot1 = new G4RotationMatrix;
+    photdetrot1->rotateX(90.*deg);
+    //photdetrot1->rotateZ(90.*deg);
+    solidPhotonDet3 = new G4Box("PhotonDet3",scintX/2,scintZ/2,pmtLength/2);
+    logicPhotonDet3 = new G4LogicalVolume(solidPhotonDet3,wrapMaterial, "PhotonDet_Ypos");
+    physiPhotonDet3 = new G4PVPlacement(photdetrot1,G4ThreeVector(0.0,yOrig,0.0), logicPhotonDet3, "PhotonDet_Ypos", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD3 = new qsimDetector("pmtSD3", 4);
+
+    solidPhotonDet4 = new G4Box("PhotonDet4",scintX/2,scintZ/2,pmtLength/2);
+    logicPhotonDet4 = new G4LogicalVolume(solidPhotonDet4,wrapMaterial, "PhotonDet_Ypos");
+    physiPhotonDet4 = new G4PVPlacement(photdetrot1,G4ThreeVector(0.0,-1*yOrig,0.0), logicPhotonDet4, "PhotonDet_Yneg", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD4 = new qsimDetector("pmtSD4", 5);
+
+    solidPhotonDet5 = new G4Box("PhotonDet5",scintX/2,scintY/2,pmtLength/2);
+    logicPhotonDet5 = new G4LogicalVolume(solidPhotonDet5,wrapMaterial, "PhotonDet_top");
+    physiPhotonDet5 = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,-1*zOrig), logicPhotonDet5, "PhotonDet_top", logicWorld, false, 0, fCheckOverlap);
+    qsimDetector* pmtSD5 = new qsimDetector("pmtSD5", 6);
+    
+    G4SDManager* SDman = G4SDManager::GetSDMpointer();
+    SDman->AddNewDetector(scintSD);
+    logicScintillator->SetSensitiveDetector(scintSD);
+    SDman->AddNewDetector(pmtSD5);
+    logicPhotonDet5->SetSensitiveDetector(pmtSD5);
+    
+    SDman->AddNewDetector(pmtSD);
+    logicPhotonDet->SetSensitiveDetector(pmtSD);
+    SDman->AddNewDetector(pmtSD1);
+    logicPhotonDet1->SetSensitiveDetector(pmtSD1);
+    SDman->AddNewDetector(pmtSD2);
+    logicPhotonDet2->SetSensitiveDetector(pmtSD2);
+    SDman->AddNewDetector(pmtSD3);
+    logicPhotonDet3->SetSensitiveDetector(pmtSD3);
+    SDman->AddNewDetector(pmtSD4);
+    logicPhotonDet4->SetSensitiveDetector(pmtSD4);
+     
+    G4VisAttributes* motherVisAtt= new G4VisAttributes(G4Colour(1.0,1.0,1.0));
+    motherVisAtt->SetVisibility(false);
+    physiWorld->GetLogicalVolume()->SetVisAttributes(motherVisAtt);
+    PrintParameters();
+    return physiWorld;  
 }
 
 
