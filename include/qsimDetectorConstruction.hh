@@ -21,7 +21,6 @@ class qsimDetectorConstruction : public G4VUserDetectorConstruction
   private:
     G4double quartz_x;
     G4double quartz_y;
-    G4double quartz_z;
 	//G4int fStandMode;
 	G4int fDetMode;
 	G4int fStandMode;
@@ -44,7 +43,7 @@ class qsimDetectorConstruction : public G4VUserDetectorConstruction
 	G4double fDetAngle, fQuartzPolish;
 	// POSSCAN
 	G4double fDetPosX, fDetPosY;
-
+	G4double fQuartzThickness;
 
 };
 

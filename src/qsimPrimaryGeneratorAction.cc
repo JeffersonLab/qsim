@@ -5,10 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <TFile.h>
-#include <TH2.h>
-#include <TTree.h>
-#include <TLeaf.h>
+#include "TFile.h"
 #include "G4Event.hh"
 #include "G4ParticleGun.hh"
 #include "G4ParticleTable.hh"
@@ -44,6 +41,9 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 	// 0 is cosmic mode
 	// 1 is beam mode
 	// 2 is PREX mode
+
+	fDistVDC = 0;
+
 	if (fSourceMode==0){
 		fXmin =  -5.0*cm;
 		fXmax =  5.*cm;
@@ -56,6 +56,8 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 	
 		fthetaMin = 0.0*deg;
 		fthetaMax = 90.0*deg;
+
+		fZ = -0.52*m;
 	}
 	else if (fSourceMode==1) {
 		fXmin =  -0.0*cm; // pinpoint at Mainz
@@ -69,11 +71,20 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 	
 		fthetaMin = 0.0*deg;
 		fthetaMax = 0.0*deg;
+
+		fZ = -0.52*m;
 	}
 	else if (fSourceMode==2){
 		
-		fEmin = 1.063*GeV; 
-		fEmax = 1.063*GeV; 
+		fEmin = 0.95*GeV; 
+		fEmax = 0.95*GeV; 
+
+		fZ = -1.43*m;
+
+		TFile* distFile = new TFile("prexII_distribution_HRSTrans.root");
+		distFile->GetObject("dist4", fDistVDC);	
+		distFile->Close();
+		delete distFile;
 
 	}
 	
@@ -89,13 +100,13 @@ qsimPrimaryGeneratorAction::qsimPrimaryGeneratorAction() {
   fParticleGun = new G4ParticleGun(n_particle);
   fDefaultEvent = new qsimEvent();
 
-	fZ = -0.52*m;
 }
 
 
 qsimPrimaryGeneratorAction::~qsimPrimaryGeneratorAction() {
   delete fParticleGun;
   delete fDefaultEvent;
+  delete fDistVDC;
 }
 
 
@@ -156,7 +167,7 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
 	double p = sqrt( E*E - mass*mass );
 	double pX, pY, pZ;
 	double randTheta, randPhi;
-	double tanth, tanph;
+	double th, ph;
 	
 	if (fSourceMode == 0 || fSourceMode == 1) {
 		bool goodTheta = false;
@@ -173,19 +184,19 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
 	}
 
 	if (fSourceMode == 2) {
-		int chosenEvent;
-		TFile *primaryFile = new TFile("primaryDistribution.root");
-		TTree *T = (TTree*)primaryFile->Get("T");
-		chosenEvent = rand() % T->GetEntries();
-		T->GetEntry(chosenEvent);		
-		xPos = T->GetLeaf("x")->GetValue()*m;
-		yPos = T->GetLeaf("y")->GetValue()*m;
-		tanth = T->GetLeaf("theta")->GetValue();		
-		tanph = T->GetLeaf("phi")->GetValue();		
-		primaryFile->Close();
-		pZ = sqrt(p/(1. + tanth*tanth + tanph*tanph));
-		pX = pZ*tanth;
-		pY = pZ*tanph;	
+
+		Double_t primary[4];
+		fDistVDC->GetRandom(primary);
+
+		xPos = primary[0]*m;
+		yPos = primary[2]*m;
+
+		th = primary[1];
+		ph = primary[3];
+
+		pZ = p/sqrt(1 + th*th + ph*ph);
+		pX = pZ*th;
+		pY = pZ*ph;	
 			
 	}
 

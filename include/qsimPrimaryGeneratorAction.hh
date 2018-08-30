@@ -4,6 +4,7 @@
 
 #include "G4VUserPrimaryGeneratorAction.hh"
 #include "G4String.hh"
+#include "THn.h"
 
 class G4ParticleGun;
 class G4Event;
@@ -31,6 +32,8 @@ class qsimPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
 
     qsimEvent *fDefaultEvent;
     qsimIO *fIO;
+	
+	THnF* fDistVDC;
 
   public:
 		G4double fXmin, fXmax, fYmin, fYmax;

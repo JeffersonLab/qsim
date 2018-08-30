@@ -48,6 +48,7 @@ qsimDetectorConstruction::qsimDetectorConstruction() {
     StandModeSet();
 
 	fQuartzPolish = 0.97;	    
+	fQuartzThickness =  1.0*cm;
 	fDetAngle = 0.*deg;
 	fDetPosX = 0.*cm;
 	fDetPosY = 0.*cm;
@@ -57,10 +58,6 @@ qsimDetectorConstruction::qsimDetectorConstruction() {
     
     quartz_x = 1.75*cm; // CSC measures in SolidWorks 0.689 x 2.952 x 0.197 cm
     quartz_y = 7.5*cm;  //2.5
-    //Half cm
-    quartz_z = 0.5*cm;
-    //One cm
-    //  quartz_z = 0.5*cm;
     
     quartz_zPos = 0.0*cm; //-.9*cm;//-1.1*cm; //-.9*cm; //-.6*cm;
     
@@ -268,9 +265,9 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     
     // Quartz (defined for all modes)
     
-    G4double q_yLB = quartz_y - (quartz_z);
+    G4double q_yLB = quartz_y - (fQuartzThickness);
     
-    G4Trap* quartz_box = new G4Trap("Quartz", 2*quartz_x, 2*quartz_z, 2*quartz_y, 2*q_yLB);
+    G4Trap* quartz_box = new G4Trap("Quartz", 2*quartz_x, fQuartzThickness, 2*quartz_y, 2*q_yLB);
 
     G4LogicalVolume* quartz_log
     = new G4LogicalVolume(quartz_box,Quartz,"Quartz",0,0,0);
@@ -357,7 +354,7 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
 
     G4double upScint_pos;
     
-    upScint_pos = quartz_z-50*cm; //45*cm; // changed to 45 cm from 50 cm as a rough estimate based on CAD measurements of the PMT model 1 + quartz design on the new stand design.
+    upScint_pos = fQuartzThickness-50*cm; //45*cm; // changed to 45 cm from 50 cm as a rough estimate based on CAD measurements of the PMT model 1 + quartz design on the new stand design.
     
     
     
@@ -387,7 +384,7 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     G4LogicalVolume* Pb_log = new G4LogicalVolume(Pb_blox,Pb_Mat,"Lead",0,0,0);
     
     G4double Pb_pos;
-    Pb_pos = loScint_pos-15.35*cm; // new setup is = loScint_pos-18.554*cm; //(-1*quartz_z)+(30.0*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
+    Pb_pos = loScint_pos-15.35*cm; // new setup is = loScint_pos-18.554*cm; //(-1*fQuartzThickness)+(30.0*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
     // If fAccBeamStand == true then remove the lead bricks, else leave them
 
     // Detector

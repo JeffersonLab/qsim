@@ -54,6 +54,7 @@ class qsimMessenger : public G4UImessenger {
 	G4UIcmdWithAnInteger *fStandModeCmd;
 	G4UIcmdWithAnInteger *fSourceModeCmd;
 	G4UIcmdWithADouble *fQuartzPolishCmd;
+	G4UIcmdWithADoubleAndUnit *fQuartzThickCmd;
 	G4UIcmdWithADoubleAndUnit *fDetAngleCmd;
 	// POSSCAN
 	G4UIcmdWithADoubleAndUnit *fDetPosXCmd;	

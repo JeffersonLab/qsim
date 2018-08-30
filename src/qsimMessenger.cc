@@ -62,9 +62,13 @@ qsimMessenger::qsimMessenger(){
 		fQuartzPolishCmd->SetGuidance("Set fQuartzPolish to a value");
 		fQuartzPolishCmd->SetParameterName("quartzpolish",false);
 		
+		fQuartzThickCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fQuartzThick",this);
+		fQuartzThickCmd->SetGuidance("Set quartz thickness");
+		fQuartzThickCmd->SetParameterName("quartzthick",false);
+
 		fDetAngleCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fDetAngle",this);
 		fDetAngleCmd->SetGuidance("Set fDetAngle to a value");
-		fDetAngleCmd->SetParameterName("detangle",false);
+		fDetAngleCmd->SetParameterName("detangle",false);	
 
 		// POSSCAN
 		fDetPosXCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fDetPosX",this);
@@ -162,6 +166,11 @@ void qsimMessenger::SetNewValue(G4UIcommand* cmd, G4String newValue){
 	if (cmd == fQuartzPolishCmd ) {
 		G4double x = fQuartzPolishCmd->GetNewDoubleValue(newValue);
 		fdetcon->fQuartzPolish = x;
+	}
+
+	if (cmd == fQuartzThickCmd) {
+		G4double x = fQuartzThickCmd->GetNewDoubleValue(newValue);
+		fdetcon->fQuartzThickness = x;
 	}
 	
 	if (cmd == fDetAngleCmd ) {
