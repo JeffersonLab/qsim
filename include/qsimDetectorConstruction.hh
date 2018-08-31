@@ -41,9 +41,12 @@ class qsimDetectorConstruction : public G4VUserDetectorConstruction
 
   public:
 	G4double fDetAngle, fQuartzPolish;
-	// POSSCAN
 	G4double fDetPosX, fDetPosY;
-	G4double fQuartzThickness;
+	G4double fQuartzThickness1;
+	G4double fQuartzThickness2;
+	G4bool fPlaceFirstDetector;
+	G4bool fPlaceSecondDetector;
+	G4double fDet2PosZ;
 
 };
 
