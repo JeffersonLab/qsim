@@ -62,9 +62,29 @@ qsimMessenger::qsimMessenger(){
 		fQuartzPolishCmd->SetGuidance("Set fQuartzPolish to a value");
 		fQuartzPolishCmd->SetParameterName("quartzpolish",false);
 		
+		fQuartzThick1Cmd = new G4UIcmdWithADoubleAndUnit("/qsim/fQuartzThick1",this);
+		fQuartzThick1Cmd->SetGuidance("Set quartz thickness for first detector");
+		fQuartzThick1Cmd->SetParameterName("quartzthick1",false);
+	
+		fQuartzThick2Cmd = new G4UIcmdWithADoubleAndUnit("/qsim/fQuartzThick2",this);
+		fQuartzThick2Cmd->SetGuidance("Set quartz thickness for second detector");
+		fQuartzThick2Cmd->SetParameterName("quartzthick2",false);
+
+		fSecDetCmd = new G4UIcmdWithABool("/qsim/fSecDet",this);
+		fSecDetCmd->SetGuidance("Place second downstream quartz detector");
+		fSecDetCmd->SetParameterName("secdet",false);		
+
+		fFirstDetCmd = new G4UIcmdWithABool("/qsim/fFirstDet",this);
+		fFirstDetCmd->SetGuidance("Place first upstream quartz detector");
+		fFirstDetCmd->SetParameterName("firstdet",false);		
+
+		fSecDetZCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fSecDetZ",this);
+		fSecDetZCmd->SetGuidance("Z position of second downstream quartz detector");
+		fSecDetZCmd->SetParameterName("secdetZ",false);		
+
 		fDetAngleCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fDetAngle",this);
 		fDetAngleCmd->SetGuidance("Set fDetAngle to a value");
-		fDetAngleCmd->SetParameterName("detangle",false);
+		fDetAngleCmd->SetParameterName("detangle",false);	
 
 		// POSSCAN
 		fDetPosXCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fDetPosX",this);
@@ -162,6 +182,31 @@ void qsimMessenger::SetNewValue(G4UIcommand* cmd, G4String newValue){
 	if (cmd == fQuartzPolishCmd ) {
 		G4double x = fQuartzPolishCmd->GetNewDoubleValue(newValue);
 		fdetcon->fQuartzPolish = x;
+	}
+
+	if (cmd == fQuartzThick1Cmd) {
+		G4double x = fQuartzThick1Cmd->GetNewDoubleValue(newValue);
+		fdetcon->fQuartzThickness1 = x;
+	}
+
+	if (cmd == fQuartzThick2Cmd) {
+		G4double x = fQuartzThick2Cmd->GetNewDoubleValue(newValue);
+		fdetcon->fQuartzThickness2 = x;
+	}
+
+	if (cmd == fSecDetCmd) {
+		G4bool secdet = fSecDetCmd->GetNewBoolValue(newValue);
+        	fdetcon->fPlaceSecondDetector = secdet;
+	}
+
+	if (cmd == fFirstDetCmd) {
+		G4bool firstdet = fFirstDetCmd->GetNewBoolValue(newValue);
+        	fdetcon->fPlaceFirstDetector = firstdet;
+	}
+
+	if (cmd == fSecDetZCmd) {
+		G4double x = fSecDetZCmd->GetNewDoubleValue(newValue);
+		fdetcon->fDet2PosZ = x;
 	}
 	
 	if (cmd == fDetAngleCmd ) {

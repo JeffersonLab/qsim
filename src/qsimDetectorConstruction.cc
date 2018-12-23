@@ -48,19 +48,21 @@ qsimDetectorConstruction::qsimDetectorConstruction() {
     StandModeSet();
 
 	fQuartzPolish = 0.97;	    
+	fQuartzThickness1 =  1.0*cm;
+	fQuartzThickness2 =  1.0*cm;
 	fDetAngle = 0.*deg;
 	fDetPosX = 0.*cm;
 	fDetPosY = 0.*cm;
+
+	fPlaceFirstDetector = true;
+	fPlaceSecondDetector = false;
+	fDet2PosZ = 16.*cm;
 	  
     // fNewStand = false; // Default setting is for the setup to reflect to old cosmic stand. True will go to the new design. Messenger has commands to switch between these at command line or at batch mode run time as well.
     // fAccBeamStand = false; // Only affects stand components: true deletes the lead block.
     
-    quartz_x = 1.75*cm; // CSC measures in SolidWorks 0.689 x 2.952 x 0.197 cm
-    quartz_y = 7.5*cm;  //2.5
-    //Half cm
-    quartz_z = 0.5*cm;
-    //One cm
-    //  quartz_z = 0.5*cm;
+    quartz_x = 3.5*cm; // CSC measures in SolidWorks 0.689 x 2.952 x 0.197 cm
+    quartz_y = 15.*cm;  //2.5
     
     quartz_zPos = 0.0*cm; //-.9*cm;//-1.1*cm; //-.9*cm; //-.6*cm;
     
@@ -68,7 +70,6 @@ qsimDetectorConstruction::qsimDetectorConstruction() {
     cone_rmax1 = cone_rmin1+.05*cm;
     cone_rmin2 = 2.5*cm;  // normally 2.5*cm;
     cone_rmax2 = cone_rmin2+.05*cm;
-    cone_z = quartz_y+.5*cm;    //3
     cone_sphi = 0.;
     cone_fphi = 2*3.1415;
     
@@ -258,28 +259,41 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     
     G4Box* det_box = new G4Box("Detector",det_x,det_y,det_z);
     
-    G4LogicalVolume* det_log
-    = new G4LogicalVolume(det_box,Air,"Detector_log",0,0,0);
+    G4LogicalVolume* det_log1
+    = new G4LogicalVolume(det_box,Air,"Detector_log1",0,0,0);
+   
+    G4LogicalVolume* det_log2
+    = new G4LogicalVolume(det_box,Air,"Detector_log2",0,0,0);
     
-    det_log->SetVisAttributes(G4VisAttributes::Invisible);
+    det_log1->SetVisAttributes(G4VisAttributes::Invisible);
+    det_log2->SetVisAttributes(G4VisAttributes::Invisible);
     
 
     // First, create solids and logical volumes
     
     // Quartz (defined for all modes)
     
-    G4double q_yLB = quartz_y - (quartz_z);
+    G4double q_yLB1 = quartz_y - fQuartzThickness1;
+    G4double q_yLB2 = quartz_y - fQuartzThickness2;
     
-    G4Trap* quartz_box = new G4Trap("Quartz", 2*quartz_x, 2*quartz_z, 2*quartz_y, 2*q_yLB);
+    G4Trap* quartz_box1 = new G4Trap("Quartz1", quartz_x, fQuartzThickness1, quartz_y, q_yLB1);
+    G4Trap* quartz_box2 = new G4Trap("Quartz2", quartz_x, fQuartzThickness2, quartz_y, q_yLB2);
 
-    G4LogicalVolume* quartz_log
-    = new G4LogicalVolume(quartz_box,Quartz,"Quartz",0,0,0);
+    G4LogicalVolume* quartz_log1
+    = new G4LogicalVolume(quartz_box1,Quartz,"Quartz1",0,0,0);
     
-    qsimScintDetector* quartzSD = new qsimScintDetector("QuartzSD", 10);
+    G4LogicalVolume* quartz_log2
+    = new G4LogicalVolume(quartz_box2,Quartz,"Quartz2",0,0,0);
+
+    qsimScintDetector* quartzSD1 = new qsimScintDetector("QuartzSD1", 10);
+    qsimScintDetector* quartzSD2 = new qsimScintDetector("QuartzSD2", 20);
     
-    SDman->AddNewDetector(quartzSD);
-    quartz_log->SetSensitiveDetector(quartzSD);
+    SDman->AddNewDetector(quartzSD1);
+    quartz_log1->SetSensitiveDetector(quartzSD1);
     
+    SDman->AddNewDetector(quartzSD2);
+    quartz_log2->SetSensitiveDetector(quartzSD2);
+
     G4RotationMatrix* rotQ = new G4RotationMatrix;
     
     rotQ->rotateX(M_PI/2.*rad);
@@ -287,8 +301,11 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
         rotQ->rotateZ(M_PI*rad);
     }
     
-    G4VPhysicalVolume* quartz_phys
-    = new G4PVPlacement(rotQ,G4ThreeVector(0,0,quartz_zPos),quartz_log,"Quartz", det_log,false,0);
+    G4VPhysicalVolume* quartz_phys1
+    = new G4PVPlacement(rotQ,G4ThreeVector(0,0,quartz_zPos),quartz_log1,"Quartz1", det_log1,false,0);
+
+    G4VPhysicalVolume* quartz_phys2
+    = new G4PVPlacement(rotQ,G4ThreeVector(0,0,quartz_zPos),quartz_log2,"Quartz2", det_log2,false,0);
 
     // Light guide and tube mirror (only for PREX-I design)
   
@@ -327,17 +344,25 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     
     G4Tubs* cath = new G4Tubs("CATH",cin,cout,clngth,anini,anspan);
     
-    G4LogicalVolume* cath_log
-    = new G4LogicalVolume(cath,CATH,"CATH",0,0,0);
+    G4LogicalVolume* cath_log1
+    = new G4LogicalVolume(cath,CATH,"CATH1",0,0,0);
     
-    qsimDetector* cathSD = new qsimDetector("cath", 2);
+    G4LogicalVolume* cath_log2
+    = new G4LogicalVolume(cath,CATH,"CATH2",0,0,0);
+
+    qsimDetector* cathSD1 = new qsimDetector("cath1", 101);
+    qsimDetector* cathSD2 = new qsimDetector("cath2", 102);
     
-    SDman->AddNewDetector(cathSD);
-    cath_log->SetSensitiveDetector(cathSD);
+    SDman->AddNewDetector(cathSD1);
+    cath_log1->SetSensitiveDetector(cathSD1);
     
+    SDman->AddNewDetector(cathSD2);
+    cath_log2->SetSensitiveDetector(cathSD2);
+
     G4VisAttributes *cathatt = new G4VisAttributes();
     cathatt->SetColour(1.0, 1.0, 0.2);
-    cath_log->SetVisAttributes(cathatt);
+    cath_log1->SetVisAttributes(cathatt);
+    cath_log2->SetVisAttributes(cathatt);
     
     
     // Scintillators
@@ -357,7 +382,7 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
 
     G4double upScint_pos;
     
-    upScint_pos = quartz_z-50*cm; //45*cm; // changed to 45 cm from 50 cm as a rough estimate based on CAD measurements of the PMT model 1 + quartz design on the new stand design.
+    upScint_pos = fQuartzThickness1-50*cm; //45*cm; // changed to 45 cm from 50 cm as a rough estimate based on CAD measurements of the PMT model 1 + quartz design on the new stand design.
     
     
     
@@ -387,7 +412,7 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     G4LogicalVolume* Pb_log = new G4LogicalVolume(Pb_blox,Pb_Mat,"Lead",0,0,0);
     
     G4double Pb_pos;
-    Pb_pos = loScint_pos-15.35*cm; // new setup is = loScint_pos-18.554*cm; //(-1*quartz_z)+(30.0*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
+    Pb_pos = loScint_pos-15.35*cm; // new setup is = loScint_pos-18.554*cm; //(-1*fQuartzThickness1)+(30.0*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
     // If fAccBeamStand == true then remove the lead bricks, else leave them
 
     // Detector
@@ -407,10 +432,10 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
 		rotlg->rotateZ(-M_PI/2.*rad);
 		    
 		rot_pmt->rotateY(M_PI/2.*rad);
-		G4VPhysicalVolume* tmirror_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+lngth+2.*cm,0.,.9*cm),tmirror_log,"TMirror",det_log,false,0);
-		G4VPhysicalVolume* lightguide_phys = new G4PVPlacement(rotlg,G4ThreeVector(0.*cm,0,-0.375*cm+.9*cm),lightguide_log,"lightguide_phys", det_log,false,0);
-		G4VPhysicalVolume* pmt_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+plngth+7.*cm,0.,.9*cm),pmt_log,"PMT",det_log,false,0);
-		G4VPhysicalVolume* cath_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+2.*plngth+7.*cm,0.,.9*cm),cath_log,"CATH",det_log,false,0);
+		G4VPhysicalVolume* tmirror_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+lngth+2.*cm,0.,.9*cm),tmirror_log,"TMirror",det_log1,false,0);
+		G4VPhysicalVolume* lightguide_phys = new G4PVPlacement(rotlg,G4ThreeVector(0.*cm,0,-0.375*cm+.9*cm),lightguide_log,"lightguide_phys", det_log1,false,0);
+		G4VPhysicalVolume* pmt_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+plngth+7.*cm,0.,.9*cm),pmt_log,"PMT",det_log1,false,0);
+		G4VPhysicalVolume* cath_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+2.*plngth+7.*cm,0.,.9*cm),cath_log1,"CATH1",det_log1,false,0);
 	}
 
 	if (fDetMode == 1) {
@@ -418,15 +443,34 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     		detrot->rotateY(fDetAngle);
 		rot_pmt -> rotateY(M_PI/4.*rad);
 
-		G4VPhysicalVolume* pmt_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.5*cm,0.*cm,0.*mm),pmt_log,"PMT",det_log,false,0);
-		G4VPhysicalVolume* cath_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.5*cm+plngth*cos(M_PI/4*rad)*mm,0.*cm,-plngth*cos(M_PI/4.*rad)*mm),cath_log,"CATH",det_log,false,0);
+		G4double d_quartz_PMT = 4.*mm;
+
+		G4double PMT1 = (quartz_y - (fQuartzThickness1/2.))/2. + d_quartz_PMT; 
+		G4double PMT2 = (quartz_y - (fQuartzThickness2/2.))/2. + d_quartz_PMT; 
+
+		G4VPhysicalVolume* pmt_phys1 = new G4PVPlacement(rot_pmt,G4ThreeVector(PMT1,0.*cm,0.*mm),pmt_log,"PMT1",det_log1,false,0);
+		G4VPhysicalVolume* cath_phys1 = new G4PVPlacement(rot_pmt,G4ThreeVector(PMT1+plngth*cos(M_PI/4*rad)*mm,0.*cm,-plngth*cos(M_PI/4.*rad)*mm),
+								cath_log1,"CATH1",det_log1,false,0);
+
+		G4VPhysicalVolume* pmt_phys2 = new G4PVPlacement(rot_pmt,G4ThreeVector(PMT2,0.*cm,0.*mm),pmt_log,"PMT2",det_log2,false,0);
+		G4VPhysicalVolume* cath_phys2 = new G4PVPlacement(rot_pmt,G4ThreeVector(PMT2+plngth*cos(M_PI/4*rad)*mm,0.*cm,-plngth*cos(M_PI/4.*rad)*mm),
+								cath_log2,"CATH2",det_log2,false,0);
+
+	} 
+
+	G4VPhysicalVolume* det_phys1 = 0;
+
+	if(fPlaceFirstDetector) {
+		det_phys1 = new G4PVPlacement(detrot,G4ThreeVector(fDetPosX,fDetPosY,0.*cm),det_log1,"detector_phys1",world_log,false,0);
+	}
+
+    	G4VPhysicalVolume* det_phys2 = 0;
+
+	if(fPlaceSecondDetector) {
+    		det_phys2 = new G4PVPlacement(detrot,G4ThreeVector(fDetPosX,fDetPosY,fDet2PosZ),det_log2,"detector_phys2",world_log,false,0);
 	}
 
 
-    G4VPhysicalVolume* det_phys
-    = new G4PVPlacement(detrot,G4ThreeVector(fDetPosX,fDetPosY,0.*cm),det_log,"detector_phys",world_log,false,0);
-	
-    
     if (fStandMode == 1) {
         G4PVPlacement* uScint_phys = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,upScint_pos-1.*cm),uScint_log,"upperScint",world_log,false,0);
         G4PVPlacement* lScint_phys = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,loScint_pos),lScint_log,"lowerScint",world_log,false,0);
@@ -447,9 +491,12 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     OpQuartzSurface->SetModel(glisur);
     OpQuartzSurface->SetPolish(fQuartzPolish);
     
-    G4LogicalBorderSurface* QuartzSurface =
-    new G4LogicalBorderSurface("QuartzSurface",quartz_phys,det_phys,OpQuartzSurface);
+    G4LogicalBorderSurface* QuartzSurface1 =
+    new G4LogicalBorderSurface("QuartzSurface1",quartz_phys1,det_phys1,OpQuartzSurface);
     
+    G4LogicalBorderSurface* QuartzSurface2 =
+    new G4LogicalBorderSurface("QuartzSurface2",quartz_phys2,det_phys2,OpQuartzSurface);
+
     // mirrors and cathode
     G4OpticalSurface* MOpSurface = new G4OpticalSurface("MirrorOpSurface");
     G4OpticalSurface* CTHOpSurface = new G4OpticalSurface("CathodeOpSurface");
@@ -486,8 +533,8 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
         G4LogicalSkinSurface("lightguideOps",lightguide_log,MOpSurface);
     }
     
-    G4LogicalSkinSurface* CathSurface = new
-    G4LogicalSkinSurface("CathOpS1", cath_log,CTHOpSurface);
+    G4LogicalSkinSurface* CathSurface1 = new G4LogicalSkinSurface("CathOpS1", cath_log1,CTHOpSurface);
+    G4LogicalSkinSurface* CathSurface2 = new G4LogicalSkinSurface("CathOpS2", cath_log2,CTHOpSurface);
     
     // Generate & Add Material Properties Table attached to the optical surfaces
     

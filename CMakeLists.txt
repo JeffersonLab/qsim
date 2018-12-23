@@ -72,7 +72,7 @@ target_link_libraries(qsim ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 #FILE( GLOB QSIM_GEO "geometry/*" )
 
 set(QSIM_SCRIPTS
-    primaryDistribution.root
+    prexII_distribution_HRSTrans.root
     macros/vis.mac
     vis/OIX.mac
     vis/Qt.mac
