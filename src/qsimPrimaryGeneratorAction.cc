@@ -66,7 +66,7 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 		fYmin =  -0.0*cm;
 		fYmax =  0.0*cm;
 
-		fEmin = 855.0*MeV; // = 250 MeV at Mainz
+		fEmin = 855.0*MeV; // = 855 MeV at Mainz
 		fEmax = 855.0*MeV; // = 1.063 Gev for JLab
 	
 		fthetaMin = 0.0*deg;
@@ -75,6 +75,19 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 		fZ = -0.52*m;
 	}
 	else if (fSourceMode==2){
+		
+		fEmin = 0.95*GeV; 
+		fEmax = 0.95*GeV; 
+
+		fZ = -0.9*m;
+
+		TFile* distFile = new TFile("prexII_distribution_g4hrs.root");
+		distFile->GetObject("dist4", fDistVDC);	
+		distFile->Close();
+		delete distFile;
+
+	}
+	else if (fSourceMode==3){
 		
 		fEmin = 0.95*GeV; 
 		fEmax = 0.95*GeV; 
