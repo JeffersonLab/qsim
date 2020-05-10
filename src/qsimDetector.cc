@@ -1,17 +1,20 @@
 #include "qsimDetector.hh"
 #include "G4SDManager.hh"
 
+//constructor with two arguments name and detector number
 qsimDetector::qsimDetector( G4String name, G4int detnum ) : G4VSensitiveDetector(name){
+    
+    //array of chars for what??
     char colname[255];
-
+    //detector number 
     fDetNo = detnum;
     assert( fDetNo > 0 );
 
-    fHCID = -1;
+    fHCID = -1;//hits collection ID??
 
 //    fTrackSecondaries = false;
     fTrackSecondaries = true;
-
+//sprintf is a C function which stores as a C string
     sprintf(colname, "genhit_%s_%d", name.data(), detnum);
     collectionName.insert(G4String(colname));
 
@@ -19,25 +22,25 @@ qsimDetector::qsimDetector( G4String name, G4int detnum ) : G4VSensitiveDetector
 
 qsimDetector::~qsimDetector(){
 }
-
+//Hits collection created by the sensitive detector which is invoked at the beginning
 void qsimDetector::Initialize(G4HCofThisEvent *){
 
     fHitColl = new qsimDetectorHitsCollection( SensitiveDetectorName, collectionName[0] );
 }
 
 ///////////////////////////////////////////////////////////////////////
-
+//Processes hits, must implement this for generating hits using info of G4Step Object
 G4bool qsimDetector::ProcessHits( G4Step *step, G4TouchableHistory *){
-    G4bool badedep = false;
-    G4bool badhit  = false;
+    G4bool badedep = false;//bad energy deposition
+    G4bool badhit  = false;//bad hit
 
 
-    // Get touchable volume info
+    // Get touchable volume info (Touchable volume is a geometrical volume which has a unique placement in a detector description)
     G4TouchableHistory *hist = 
-	(G4TouchableHistory*)(step->GetPreStepPoint()->GetTouchable());
+	(G4TouchableHistory*)(step->GetPostStepPoint()->GetTouchable());  // Pre->Post
     G4int  copyID = hist->GetReplicaNumber();
 
-    G4StepPoint *prestep = step->GetPreStepPoint();
+    G4StepPoint *poststep = step->GetPostStepPoint();   //Pre->Post
     G4Track     *track   = step->GetTrack();
 
 //    G4Material* material = track->GetMaterial();
@@ -55,7 +58,7 @@ G4bool qsimDetector::ProcessHits( G4Step *step, G4TouchableHistory *){
 
     if( !badhit ){
 	// Hit
-	thishit->f3X = prestep->GetPosition();
+	thishit->f3X = poststep->GetPosition();
 	thishit->f3V = track->GetVertexPosition();
 	thishit->f3D = track->GetVertexMomentumDirection();
 	thishit->f3P = track->GetMomentum();

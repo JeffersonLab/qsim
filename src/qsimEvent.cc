@@ -12,9 +12,10 @@ qsimEvent::~qsimEvent(){
 }
 
 void qsimEvent::ProduceNewParticle( G4ThreeVector pos, G4ThreeVector mom, G4String name ){
+//push_back method part of the vector library which adds a new element at the end of the vector
     fPartPos.push_back(pos);
     fPartMom.push_back(mom);
-
+//get particle information and find particle
     G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
     G4ParticleDefinition* particle = particleTable->FindParticle(name);
 
@@ -32,6 +33,7 @@ void qsimEvent::Reset(){
 }
 
 void qsimEvent::UndoLastParticle(){
+// part of vector library, removes last element in the vector    
     fPartPos.pop_back();
     fPartMom.pop_back();
     fPartType.pop_back();
@@ -80,7 +82,7 @@ void qsimEvent::Print(){
 	}
     }
 }
-
+//prints out particle name, position,momentum
 
 
 

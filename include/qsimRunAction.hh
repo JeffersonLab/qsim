@@ -6,7 +6,7 @@
 #include "G4UserRunAction.hh"
 
 class G4Timer;
-class G4Run;
+class G4Run;//represents a run. Object of class created and deleted by G4RunManager. Should only use get methods
 class qsimIO;
 
 class qsimRunAction : public G4UserRunAction

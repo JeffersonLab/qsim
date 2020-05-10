@@ -35,16 +35,16 @@ qsimMessenger::qsimMessenger(){
     fileCmd = new G4UIcmdWithAString("/qsim/filename",this);
     fileCmd->SetGuidance("Output filename");
     fileCmd->SetParameterName("filename", false);
-
-    seedCmd = new G4UIcmdWithAnInteger("/qsim/seed",this);
+/*
+    seedCmd = new G4UIcmdWithAnInteger("/qsim/seed",this)
     seedCmd->SetGuidance("Set random engine seed");
     seedCmd->SetParameterName("seed", false);
-
+*/
 		// new
 
-		//fStandModeCmd = new G4UIcmdWithAnInteger("/qsim/fStandMode",this);
-		//fStandModeCmd->SetGuidance("Set fStandMode to an option");
-		//fStandModeCmd->SetParameterName("standmode", false);
+//		fStandModeCmd = new G4UIcmdWithAnInteger("/qsim/fStandMode",this);
+//		fStandModeCmd->SetGuidance("Set fStandMode to an option");
+//		fStandModeCmd->SetParameterName("standmode", false);
 		
 		fDetModeCmd = new G4UIcmdWithAnInteger("/qsim/fDetMode",this);
 		fDetModeCmd->SetGuidance("Set fDetMode to an option");
@@ -100,7 +100,7 @@ qsimMessenger::qsimMessenger(){
     fEmaxCmd->SetGuidance("Set Energy range maximum");
     fEmaxCmd->SetParameterName("emax", false);
 //
-		fthetaMinCmd = new G4UIcmdWithADoubleAndUnit("/qsim/thetamin", this);
+    fthetaMinCmd = new G4UIcmdWithADoubleAndUnit("/qsim/thetamin", this);
     fthetaMinCmd->SetGuidance("Set theta range minimum");
     fthetaMinCmd->SetParameterName("thetamin", false);
 
@@ -108,14 +108,23 @@ qsimMessenger::qsimMessenger(){
     fthetaMaxCmd->SetGuidance("Set theta range maximum");
     fthetaMaxCmd->SetParameterName("thetamax", false);
 
+/*
+    fphiMinCmd = new GUIcmdWithADoubleAndUnit("/qsim/phimin", this);
+    fphiMinCmd->SetGuidance("Set phi range minimum");
+    fphiMinCmd->SetParameterName("phimin", false);
+ 
+    fphiMaxCmd = new G4UIcmdWithADoubleAndUnit("/qsim/phimax", this);
+    fphiMaxCmd->SetGuidance("Set phi range maximum"); 
+    fphiMaxCmd->SetParameterName("phimax", false);
+*/
 
-//    fThetaCmd = new G4UIcmdWithADoubleAndUnit("/qsim/theta", this);
-//    fThetaCmd->SetGuidance("Set particle theta");
-//    fThetaCmd->SetParameterName("theta", false);
+    fThetaCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fTheta", this);
+    fThetaCmd->SetGuidance("Set particle theta");
+    fThetaCmd->SetParameterName("theta", false);
 
-//    fPhiCmd = new G4UIcmdWithADoubleAndUnit("/qsim/phi", this);
-//    fPhiCmd->SetGuidance("Set particle phi");
-//    fPhiCmd->SetParameterName("phi", false);
+    fPhiCmd = new G4UIcmdWithADoubleAndUnit("/qsim/fPhi", this);
+    fPhiCmd->SetGuidance("Set particle phi");
+    fPhiCmd->SetParameterName("phi", false);
 
     fZCmd = new G4UIcmdWithADoubleAndUnit("/qsim/z", this);
     fZCmd->SetGuidance("Set particle z");
@@ -131,24 +140,24 @@ void qsimMessenger::SetNewValue(G4UIcommand* cmd, G4String newValue){
     if( cmd == fileCmd ){
 	fIO->SetFilename(newValue);
     }
-
+/*
     if( cmd == seedCmd ){
 	G4int seed = seedCmd->GetNewIntValue(newValue);
 	CLHEP::HepRandom::setTheSeed(seed);
     }
+*/
 
-/*
 
-		if (cmd == fStandModeCmd ) {
-	G4int x = fStandModeCmd->GetNewIntValue(newValue);
-	fdetcon->StandModeSet(x);
-		}
-*/		
+//		if (cmd == fStandModeCmd ) {
+//	G4int x = fStandModeCmd->GetNewIntValue(newValue);
+//	fdetcon->StandModeSet(x);
+//		}
+		
 		if (cmd == fDetModeCmd ) {
 	G4int x = fDetModeCmd->GetNewIntValue(newValue);
 	fdetcon->DetModeSet(x);
 		}
-		
+	
 	if (cmd == fStandModeCmd ) {
 	G4int x = fStandModeCmd->GetNewIntValue(newValue);
 	fdetcon->StandModeSet(x);
@@ -205,7 +214,7 @@ void qsimMessenger::SetNewValue(G4UIcommand* cmd, G4String newValue){
 	G4double x = fEmaxCmd->GetNewDoubleValue(newValue);
 	fprigen->fEmax = x;
     }
-    if( cmd == fthetaMinCmd ){
+    /*if( cmd == fthetaMinCmd ){
 	G4double x = fthetaMinCmd->GetNewDoubleValue(newValue);
 	fprigen->fthetaMin = x;
     }
@@ -213,17 +222,28 @@ void qsimMessenger::SetNewValue(G4UIcommand* cmd, G4String newValue){
 	G4double x = fthetaMaxCmd->GetNewDoubleValue(newValue);
 	fprigen->fthetaMax = x;
     }
+    if(cmd == fphiMinCmd){
+       G4double x = fphiMinCmd->GetNewDoubleValue(newValue);
+       fprigen->fphiMin = x;
+    }
+    if(cmd == fphiMaxCmd){
+       G4double x = fphiMinCmd->GetNewDoubleValue(newValue);
+       fprigen->fphiMax = x;
+    }
+*/
+
+
 // INSERT new commands for theta
 
-//    if( cmd == fThetaCmd ){
-//	G4double x = fThetaCmd->GetNewDoubleValue(newValue);
-//	fprigen->fTheta = x;
-//    }
+    if( cmd == fThetaCmd ){
+	G4double x = fThetaCmd->GetNewDoubleValue(newValue);
+	fprigen->fTheta = x;
+    }
 
-//    if( cmd == fPhiCmd ){
-//	G4double x = fPhiCmd->GetNewDoubleValue(newValue);
-//	fprigen->fPhi = x;
-//    }
+    if( cmd == fPhiCmd ){
+	G4double x = fPhiCmd->GetNewDoubleValue(newValue);
+	fprigen->fPhi = x;
+    }
     if( cmd == fZCmd ){
 	G4double x = fZCmd->GetNewDoubleValue(newValue);
 	fprigen->fZ = x;

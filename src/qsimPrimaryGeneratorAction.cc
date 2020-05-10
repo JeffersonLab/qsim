@@ -69,7 +69,9 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 	
 		fthetaMin = 0.0*deg;
 		fthetaMax = 0.0*deg;
-	}
+	
+                
+        }
 	else if (fSourceMode==2){
 		
 		fEmin = 1.063*GeV; 
@@ -80,6 +82,8 @@ void qsimPrimaryGeneratorAction::SourceModeSet(G4int mode = 0) {
 
 
 }
+
+
 
 qsimPrimaryGeneratorAction::qsimPrimaryGeneratorAction() {
   G4int n_particle = 1;
@@ -157,20 +161,31 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
 	double pX, pY, pZ;
 	double randTheta, randPhi;
 	double tanth, tanph;
-	
-	if (fSourceMode == 0 || fSourceMode == 1) {
+	double theta,phi;
+  
+ 
+        if (fSourceMode == 0 || fSourceMode == 1) {
 		bool goodTheta = false;
 		while ( goodTheta == false ) {
 			randTheta = CLHEP::RandFlat::shoot( fthetaMin, fthetaMax );
 			goodTheta = Thetaspectrum(randTheta);
-		}
+		        
+
+                 }
 		
-		randPhi = CLHEP::RandFlat::shoot( 0.0,360.0)*deg ;
-    
-    		pX = sin(randTheta)*cos(randPhi)*p;
+        	randPhi = CLHEP::RandFlat::shoot( 0.0, 360.0  )*deg;
+                
+    		
+                
+                pX = sin(randTheta)*cos(randPhi)*p;
    		pY = sin(randTheta)*sin(randPhi)*p;
     		pZ = cos(randTheta)*p;
+         
+             
+          
+
 	}
+
 
 	if (fSourceMode == 2) {
 		int chosenEvent;
@@ -189,7 +204,8 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
 			
 	}
 
-    
+     
+ 
     assert( E > 0.0 );
     assert( E > mass );
 
@@ -201,6 +217,7 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
     /////////////////////////////////////////////////////////////
     // Register and create event
     //
+
     
     double kinE = sqrt(fDefaultEvent->fPartMom[0].mag()*fDefaultEvent->fPartMom[0].mag()
 	    + fDefaultEvent->fPartType[0]->GetPDGMass()*fDefaultEvent->fPartType[0]->GetPDGMass() )

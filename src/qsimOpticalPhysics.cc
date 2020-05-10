@@ -1,5 +1,5 @@
-#include "G4LossTableManager.hh"
-#include "G4EmSaturation.hh"
+#include "G4LossTableManager.hh"//static class responsible for energy loss table for each particle
+#include "G4EmSaturation.hh"//Compution on saturation effect, which reduce visible energy deposition at the step
 
 #include "qsimOpticalPhysics.hh"
 

@@ -34,6 +34,7 @@ void qsimEventAction::BeginOfEventAction(const G4Event*ev) {
 }
 
 void qsimEventAction::EndOfEventAction(const G4Event* evt ) {
+
   //G4SDManager   *SDman = G4SDManager::GetSDMpointer();
   G4HCofThisEvent *HCE = evt->GetHCofThisEvent();
 
@@ -48,6 +49,7 @@ void qsimEventAction::EndOfEventAction(const G4Event* evt ) {
 	  ////  Detector Hits ///////////////////////////////////
 	  if( qsimDetectorHitsCollection *thiscast = 
 		  dynamic_cast<qsimDetectorHitsCollection *>(thiscol)){
+		printf("%d hits\n", thiscast->GetSize());
 	      for( unsigned int hidx = 0; hidx < thiscast->GetSize(); hidx++ ){
 		  fIO->AddDetectorHit(
 			  (qsimDetectorHit *) thiscast->GetHit(hidx) );

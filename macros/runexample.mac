@@ -13,12 +13,12 @@
 
 /run/initialize 
 
-/qsim/filename qsim_out.root
+/qsim/filename qsim_outcheck.root
 /qsim/seed 50 
 
-/qsim/emin   1.063 GeV
-/qsim/emax   1.063 GeV
+/qsim/emin   855 GeV
+/qsim/emax   855 GeV
 
 /gun/particle e- 
 
-/run/beamOn 1000
+/run/beamOn 100000

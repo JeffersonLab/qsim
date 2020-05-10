@@ -6,10 +6,10 @@
 #include "globals.hh"
 
 class qsimSteppingAction : public G4UserSteppingAction
-{
+{//G4UserSteppingAction class represents actions taken place by the user at each end of stepping
   public:
     qsimSteppingAction();
-    virtual ~qsimSteppingAction(){};
+    virtual ~qsimSteppingAction(){};// virtual destructors useful when you can delete an instance of a derived class through a pointer to a base class.
 
     virtual void UserSteppingAction(const G4Step*);
 

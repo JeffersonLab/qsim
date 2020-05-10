@@ -15,7 +15,7 @@
 #include "G4VPhysicsConstructor.hh"
 
 class qsimOpticalPhysics : public G4VPhysicsConstructor
-{
+{//G4VPhysicsConstructor is a virtual class for constructing particles and processes. Class objects registered to G4VPhysicsList
   public:
 
     qsimOpticalPhysics(G4bool toggle=true);

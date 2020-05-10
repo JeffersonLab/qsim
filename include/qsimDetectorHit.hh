@@ -14,10 +14,13 @@ class qsimDetectorHit : public G4VHit {
 	qsimDetectorHit(const qsimDetectorHit &right);
 	const qsimDetectorHit& operator=(const qsimDetectorHit &right);
 	G4int operator==(const qsimDetectorHit &right) const;
-
+        
+        //overload of the operator new operator(mimic malloc function in C). Size_t is the number of bytes to be allocated
 	inline void *operator new(size_t);
-	inline void operator delete(void *aHit);
-	void *operator new(size_t,void*p){return p;}
+        //overload of delete operator which returns the pointer of the aHit object
+       	inline void operator delete(void *aHit);
+	//Can be used to invoke object's constructor or arbritrary piece of memory
+        void *operator new(size_t,void*p){return p;}
 
     private:
 
@@ -39,11 +42,13 @@ class qsimDetectorHit : public G4VHit {
 	G4int    fGen;
 };
 
-
+//typedef creates alias name for another data type
+//G4THitsCollection template class value type from 
 typedef G4THitsCollection<qsimDetectorHit> qsimDetectorHitsCollection;
 
 extern G4Allocator<qsimDetectorHit> qsimDetectorHitAllocator;
 
+//Malloc and Free methods to be used when overloading
 inline void* qsimDetectorHit::operator new(size_t){
     void *aHit;
     aHit = (void *) qsimDetectorHitAllocator.MallocSingle();

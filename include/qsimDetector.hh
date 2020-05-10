@@ -13,17 +13,17 @@
 
 */
 
-class G4HCofThisEvent;
-class G4Step;
-class G4TouchableHistory;
+class G4HCofThisEvent;//stores hits collections generated at one event constructed by G4SDManager
+class G4Step;//Represents step of a particle tracked
+class G4TouchableHistory;//object that represents a touchable detector element, and its hierarchy, including its net resultant local->global transform
 
 class qsimDetector : public G4VSensitiveDetector {
     public:
-	qsimDetector( G4String name, G4int detnum );
+	qsimDetector( G4String name, G4int detnum);
 	virtual ~qsimDetector();
 
 	virtual void Initialize(G4HCofThisEvent*);
-	virtual G4bool ProcessHits(G4Step*,G4TouchableHistory*);
+	virtual G4bool ProcessHits(G4Step*,G4TouchableHistory*);//must be implemented for generating hits using info on G4Step object
 	virtual void EndOfEvent(G4HCofThisEvent*);
 
     private:

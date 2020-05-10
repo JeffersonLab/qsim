@@ -10,6 +10,7 @@
 #include "G4LogicalBorderSurface.hh"
 #include "G4LogicalSkinSurface.hh"
 #include "G4Box.hh"
+#include "G4ExtrudedSolid.hh"
 #include "G4Trap.hh"
 #include "G4Cons.hh"
 #include "G4Tubs.hh"
@@ -22,6 +23,12 @@
 #include "G4OpticalSurface.hh"
 #include "G4SubtractionSolid.hh"
 #include "G4VisAttributes.hh"
+#include "G4TwoVector.hh"
+#include "G4Polycone.hh"
+#include "G4IntersectionSolid.hh"
+#include <iostream>
+#include <fstream>
+using namespace std;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -46,9 +53,9 @@ qsimDetectorConstruction::qsimDetectorConstruction() {
     
     DetModeSet();
     StandModeSet();
-
+//Position scan
 	fQuartzPolish = 0.97;	    
-	fDetAngle = 0.*deg;
+        fDetAngle = 0*deg;
 	fDetPosX = 0.*cm;
 	fDetPosY = 0.*cm;
 	  
@@ -62,7 +69,7 @@ qsimDetectorConstruction::qsimDetectorConstruction() {
     //One cm
     //  quartz_z = 0.5*cm;
     
-    quartz_zPos = 0.0*cm; //-.9*cm;//-1.1*cm; //-.9*cm; //-.6*cm;
+    quartz_zPos = 0*cm; //-.9*cm;//-1.1*cm; //-.9*cm; //-.6*cm;
     
     cone_rmin1 = 2.1*cm;
     cone_rmax1 = cone_rmin1+.05*cm;
@@ -84,21 +91,25 @@ qsimDetectorConstruction::~qsimDetectorConstruction(){;}
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
+    // the real contruction comes from here 
     
     // Define materials
     
     G4double a, z, density;
     G4int nelements;
     
-    // Air
+    
     G4Element* N = new G4Element("Nitrogen", "N", z=7 , a=14.01*g/mole);
     G4Element* O = new G4Element("Oxygen"  , "O", z=8 , a=16.00*g/mole);
+    G4Element* C = new G4Element("Carbon"  , "C", z=6 , a=12.01*g/mole);
+    G4Element* H = new G4Element("Hydrogen", "H", z=1 , a=1.00*g/mole);
     
+    //--- Air 
     G4Material* Air = new G4Material("Air", density=1.29*mg/cm3, nelements=2);
     Air->AddElement(N, 70.*perCent);
     Air->AddElement(O, 30.*perCent);
     
-    // Quartz
+    //--- Quartz
     G4Element* Si = new G4Element("Silicon", "Si", z=14 , a=28*g/mole);
     
     G4Material* Quartz = new G4Material("Quartz", density= 2.203*g/cm3, nelements=2);
@@ -107,27 +118,60 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     
     // Aluminum for mirror and stand (need separate materials so that mirror can be reflective)
     G4Element* Al = new G4Element("Aluminum", "Al", z=13 , a=27*g/mole);
-    G4Material* Alu_Mat = new G4Material("Alu_Mat", 2.7*g/cm3, nelements=1);
-    Alu_Mat->AddElement(Al, 1);
-    G4Material* Mirror = new G4Material("Mirror", density= 2.7*g/cm3, nelements=1);
-    Mirror->AddElement(Al, 1);
     
-    // Lead
-    G4Element* Pb = new G4Element("Lead", "Pb", z=82 , a=207.2*g/mole);
-    G4Material* Pb_Mat = new G4Material("Pb_Mat", 11.34*g/cm3, nelements=1);
-    Pb_Mat->AddElement(Pb, 1);
+   
+    //---Mylar
+    G4Material* Mylar = new G4Material("Mylar",density = 1.38*g/cm3, nelements = 3);
+    Mylar->AddElement(C,10);
+    Mylar->AddElement(H,8);
+    Mylar->AddElement(O,4);
+
+    //---Aluminized-Mylar
+    G4Material* AlMylar = new G4Material("AlMylar", density = 0.999999*g/cm3, nelements=4);
+    AlMylar->AddElement(C,10);
+    AlMylar->AddElement(H,8);
+    AlMylar->AddElement(O,4);
+    AlMylar->AddElement(Al,3);
     
+    //---Paper
+    G4Material* Paper = new G4Material("Paper", density = 1.5*g/cm3, nelements = 3);
+    Paper->AddElement(C,6);
+    Paper->AddElement(H,10);
+    Paper->AddElement(O,5);
+
+ 
+    //---CATH
+   
     // Let us make cathode from a special metal (reflectivity 0, efficiency of photoelectrons 25%)
     G4Material* CATH = new G4Material("CATH", density= 2.7*g/cm3, nelements=1);
     CATH->AddElement(Al, 1);
     
+      
     
     // Define optical property tables
     
-    const G4int nEntries = 205;
+const G4int nEntries = 548;
+
+
+ifstream myfile;
+myfile.open("../../../qsim_code/photon_angle/qsim/src/Simulation.txt");
+
+G4double PhotonEnergy[nEntries];
+G4double Quantum_Efficiency[nEntries];
+G4double reflectivity[nEntries];
+
+    
+    if(myfile.is_open())
+{
+for(int j = 0; j  < nEntries; j++)
+{
+myfile >> PhotonEnergy[j] >> reflectivity[j] >> Quantum_Efficiency[j]; 
+}
+}
+  
     
     // Array of photon energies
-    G4double PhotonEnergy[nEntries] =
+  /*  G4double PhotonEnergy[nEntries] =
     {  2.4,2.42,2.44,2.46,2.48,2.5,2.52,2.54,2.56,2.58,
         2.6,2.62,2.64,2.66,2.68,2.7,2.72,2.74,2.76,2.78,
         2.8,2.82,2.84,2.86,2.88,2.9,2.92,2.94,2.96,2.98,
@@ -140,8 +184,8 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
         4.2,4.22,4.24,4.26,4.28,4.3,4.32,4.34,4.36,4.38,
         4.4,4.42,4.44,4.46,4.48,4.5,4.52,4.54,4.56,4.58,
         4.6,4.62,4.64,4.66,4.68,4.7,4.72,4.74,4.76,4.78,
-        4.8,4.82,4.84,4.86,4.88,4.9,4.92,4.94,4.96,4.98,        // Cut off -> 4.96eV ~ 250nm
-        5,5.02,5.04   ,   5.06,5.08,5.1,5.12,5.14,5.16,5.18,    // 5.04eV = 246 nm is the 30% cutoff, 133 entries
+        4.8,4.82,4.84,4.86,4.88,4.9,4.92,4.94,4.96,4.98,        // Cut off -> 4.96eV ~ 250nm 
+        5,5.02,5.04   ,   5.06,5.08,5.1,5.12,5.14,5.16,5.18,    // 5.04eV = 246 nm is the 30% cutoff, 133 entries 
         5.2,5.22,5.24,5.26,5.28,5.3,5.32,5.34,5.36,5.38,
         5.4,5.42,5.44,5.46,5.48,5.5,5.52,5.54,5.56,5.58,
         5.6,5.62,5.64,5.66,5.68,5.7,5.72,5.74,5.76,5.78,
@@ -151,11 +195,12 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
         7.08,7.20,7.32,7.44,7.56,7.69
     };
     
+  
+    
     // Cathode quantum efficiency
     // Response obtained from the plot of the quantum efficiency as a function of wavelength and then changed to eV for the Bialkali photocathode (synthetic silica)
-    
     G4double EfficiencyArrayPercent[nEntries] =
-    {  11.0,12.0,12.5,13.1,13.5,14.5,15.2,16.0,16.5,17.0, // percentages here
+    {  11.0,12.0,12.5,13.1,13.5,14.5,15.2,16.0,16.5,17.0, // percentages here 
         17.5,18.0,18.5,19.0,19.2,19.7,20.1,20.7,20.9,21.1,
         21.6,22.0,22.5,22.7,23.0,23.5,23.7,24.0,24.0,24.2,
         24.2,24.5,25.0,25.0,25.3,25.5,25.5,25.5,25.5,25.5,
@@ -164,68 +209,105 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
         25.6,25.6,25.6,26.1,26.1,26.1,26.1,26.1,26.1,26.1,
         25.6,25.0,25.0,25.0,25.0,24.5,24.5,24.5,24.5,24.3,
         24.0,24.0,24.0,24.0,24.0,24.0,23.5,23.5,23.5,23.5,
-        23.5,23.5,23.5,23.3,23.1,22.8,22.6,22.6,22.6,22.6, // 4.38 eV
-        22.6,22.6,22.3,22.1,22.1,22.1,22.0,21.8,21.7,21.3, //100 entries 4.58 eV
-        21.2,21.0,20.8,20.8,20.8,20.8,20.8,20.8,20.8,20.8, // 4.78 eV
-        20.4,20.4,20.4,20.4,20.4,20.4,20.4,20.4,20.2,20.0, // 4.98 eV
-        20.0,20.0,20.0,20.0,20.0,20.0,20.0,19.5,19.5,19.5, // 5.18 eV
-        19.5,19.5,19.5,19.5,19.1,19.1,19.1,19.1,19.1,19.1, // 5.38 eV
-        19.1,19.1,19.1,19.0,18.8,18.8,18.8,18.8,18.8,18.8, // 5.58 eV
-        18.8,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4, // 5.78 eV
-        18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4, // 5.98eV
+        23.5,23.5,23.5,23.3,23.1,22.8,22.6,22.6,22.6,22.6, // 4.38 eV 
+        22.6,22.6,22.3,22.1,22.1,22.1,22.0,21.8,21.7,21.3, // 100 entries 4.58 eV 
+        21.2,21.0,20.8,20.8,20.8,20.8,20.8,20.8,20.8,20.8, // 4.78 eV 
+        20.4,20.4,20.4,20.4,20.4,20.4,20.4,20.4,20.2,20.0, // 4.98 eV 
+        20.0,20.0,20.0,20.0,20.0,20.0,20.0,19.5,19.5,19.5, // 5.18 eV 
+        19.5,19.5,19.5,19.5,19.1,19.1,19.1,19.1,19.1,19.1, // 5.38 eV 
+        19.1,19.1,19.1,19.0,18.8,18.8,18.8,18.8,18.8,18.8, // 5.58 eV 
+        18.8,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4, // 5.78 eV 
+        18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4,18.4, // 5.98eV 
         18.4,18.2,18.0,18.0,18.0,18.0,18.0,18.0,18.0,18.0,
         18.0,17.6,17.6,17.6,17.6,17.2,16.5,16.2,15.9,
         15.2,14.9,14.3,12.1,10.2,9.6
-    };                                                      // 6.18 eV
+    }; */                                                    // 6.18 eV
+   
+    // cathode
+    G4double Efficiency_cathode[nEntries];
+    G4double Reflectivity_cathode[nEntries];       // cathode reflectivity
     
-    G4double EfficiencyArray[nEntries];
-
-    G4double RefractiveIndex1[nEntries];    // quartz refractive index
-    G4double Absorption1[nEntries];         // quartz absorption length
-    G4double RefractiveIndex2[nEntries];    // air refractive index
-    G4double Reflectivity1[nEntries];       // mirror reflectivity
-    G4double Reflectivity2[nEntries];       // cathode reflectivity
-
+    //quartz
+    G4double RefractiveIndex_quartz[nEntries];    // quartz refractive index
+    G4double Absorption_quartz[nEntries];         // quartz absorption length
     
+    //air
+    G4double RefractiveIndex_air[nEntries];    // air refractive index
+    
+   //reflector- Aluminized Mylar
+   G4double Reflectivity_Mirror[nEntries];
+   
+   //reflectivity for light guide
+   G4double Reflect_LG[nEntries];
+    
+   //reflectivity paper
+   G4double Reflect_Paper[nEntries];
+
+
+ 
     for (int i = 0; i < nEntries; i++) {
-        
+	
         PhotonEnergy[i] = PhotonEnergy[i]*eV;
-	EfficiencyArray[i] = 0.01*EfficiencyArrayPercent[i];
-        RefractiveIndex1[i]= 1.438 + (.01197*PhotonEnergy[i]/eV) - (.001955*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV) + (.0004793*PhotonEnergy[i]*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV/eV);
+        
+  	
+	//---cathode
+	  
+	Efficiency_cathode[i] = Quantum_Efficiency[i] ; //0.01*EfficiencyArrayPercent[i]; //QE, defined in %
+        
+        
+
+        Reflectivity_cathode[i] = 0.;
+	
+	//---quartz
+	RefractiveIndex_quartz[i]= 
+	1.438 + (.01197*PhotonEnergy[i]/eV) - (.001955*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV) + (.0004793*PhotonEnergy[i]*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV/eV);
         
         // *** need to update this
-        Absorption1[i] = (exp(4.325)*exp(1.191*PhotonEnergy[i]/eV)*exp(-.213*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV)*exp(-.04086*PhotonEnergy[i]*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV/eV))*m;
-        if (Absorption1[i] > 25*m) {
-            Absorption1[i] = 25*m;
+        Absorption_quartz[i] 
+	= (exp(4.325)*exp(1.191*PhotonEnergy[i]/eV)*exp(-.213*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV)*exp(-.04086*PhotonEnergy[i]*PhotonEnergy[i]*PhotonEnergy[i]/eV/eV/eV))*m;
+       
+
+ 
+        //--reflector 
+ 
+        Reflectivity_Mirror[i] = 0.9;
+
+       
+        //LG
+        Reflect_LG[i] = 0.9;
+        
+        //Paper
+        Reflect_Paper[i] = 0;
+
+	if (Absorption_quartz[i] > 25*m) {
+            Absorption_quartz[i] = 25*m;
         }
         
-        // *** need to update this
-        if (PhotonEnergy[i] < 4.135*eV) {
-        } else if (PhotonEnergy[i] >= 4.135*eV && PhotonEnergy[i] < 6.203*eV) {
-            Reflectivity1[i] = .6;  // .7
-        } else {
-            Reflectivity1[i] = .5;  // .6
-        }
-        
-        RefractiveIndex2[i] = 1.;
-        Reflectivity2[i] = 0.;
+        //---air
+        RefractiveIndex_air[i] = 1.;
     }
     
     
     // Quartz material property table
+    G4MaterialPropertiesTable* table_material_quartz = new G4MaterialPropertiesTable();
+    table_material_quartz->AddProperty("RINDEX",       PhotonEnergy, RefractiveIndex_quartz,nEntries);
+    table_material_quartz->AddProperty("ABSLENGTH",    PhotonEnergy, Absorption_quartz,     nEntries);
     
-    G4MaterialPropertiesTable* myMPT1 = new G4MaterialPropertiesTable();
-    myMPT1->AddProperty("RINDEX",       PhotonEnergy, RefractiveIndex1,nEntries);
-    myMPT1->AddProperty("ABSLENGTH",    PhotonEnergy, Absorption1,     nEntries);
-    Quartz->SetMaterialPropertiesTable(myMPT1);
+    Quartz->SetMaterialPropertiesTable(table_material_quartz);
     
     // Air material properties table
     // *** need to add absorption length?
-    G4MaterialPropertiesTable* myMPT2 = new G4MaterialPropertiesTable();
-    myMPT2->AddProperty("RINDEX", PhotonEnergy, RefractiveIndex2, nEntries);
-    Air->SetMaterialPropertiesTable(myMPT2);
-    
-    
+    G4MaterialPropertiesTable* table_material_air = new G4MaterialPropertiesTable();
+    table_material_air->AddProperty("RINDEX", PhotonEnergy, RefractiveIndex_air, nEntries);
+    Air->SetMaterialPropertiesTable(table_material_air);
+   
+
+    //Paper material property table
+    G4MaterialPropertiesTable* table_material_paper = new G4MaterialPropertiesTable();
+    table_material_paper->AddProperty("REFLECTIVITY(P)",PhotonEnergy,Reflect_Paper, nEntries);
+    Paper->SetMaterialPropertiesTable(table_material_paper); 
+   
+    //sensitive detector manager
     G4SDManager* SDman = G4SDManager::GetSDMpointer();
     
     
@@ -238,274 +320,1001 @@ G4VPhysicalVolume* qsimDetectorConstruction::Construct() {
     
     // World and detector box
     
-    double world_x, world_y, world_z;
-    double det_x, det_y, det_z;
+    G4double world_x, world_y, world_z;
+    G4double det_x, det_y, det_z;
     
     world_x = world_y = world_z = 275*cm;
-    det_x = 15*cm;
-    det_y = 6*cm;
-    det_z = 6*cm;
     
+    det_x = 100*cm;
+    det_y = 100*cm;
+    det_z = 100*cm;
+    
+    //---world
     G4Box* world_box = new G4Box("World",world_x,world_y,world_z);
     
-    G4LogicalVolume* world_log
-    = new G4LogicalVolume(world_box,Air,"World",0,0,0);
-    
+    G4LogicalVolume* world_log = new G4LogicalVolume(world_box,Air,"World_log",0,0,0);
     world_log->SetVisAttributes(G4VisAttributes::Invisible);
     
-    G4VPhysicalVolume* world_phys
-    = new G4PVPlacement(0,G4ThreeVector(),world_log,"World",0,false,0);
+    G4VPhysicalVolume* world_phys = new G4PVPlacement(0,G4ThreeVector(),world_log,"World",0,false,0);
     
+    //---det box
     G4Box* det_box = new G4Box("Detector",det_x,det_y,det_z);
     
-    G4LogicalVolume* det_log
-    = new G4LogicalVolume(det_box,Air,"Detector_log",0,0,0);
-    
+    G4LogicalVolume* det_log = new G4LogicalVolume(det_box,Air,"Detector_log",0,0,0);
     det_log->SetVisAttributes(G4VisAttributes::Invisible);
     
+  ///-------------------single cut quartz   
+  ///---Moller style quartz
 
-    // First, create solids and logical volumes
-    
-    // Quartz (defined for all modes)
-    
-    G4double q_yLB = quartz_y - (quartz_z);
-    
-    G4Trap* quartz_box = new G4Trap("Quartz", 2*quartz_x, 2*quartz_z, 2*quartz_y, 2*q_yLB);
 
-    G4LogicalVolume* quartz_log
-    = new G4LogicalVolume(quartz_box,Quartz,"Quartz",0,0,0);
-    
-    qsimScintDetector* quartzSD = new qsimScintDetector("QuartzSD", 10);
-    
-    SDman->AddNewDetector(quartzSD);
-    quartz_log->SetSensitiveDetector(quartzSD);
-    
-    G4RotationMatrix* rotQ = new G4RotationMatrix;
-    
-    rotQ->rotateX(M_PI/2.*rad);
-    if(fDetMode == 0) {
-        rotQ->rotateZ(M_PI*rad);
-    }
-    
-    G4VPhysicalVolume* quartz_phys
-    = new G4PVPlacement(rotQ,G4ThreeVector(0,0,quartz_zPos),quartz_log,"Quartz", det_log,false,0);
-
-    // Light guide and tube mirror (only for PREX-I design)
-  
-    G4Trap *lightguide_big = new G4Trap("lightguide_big",11.21*cm,2.97456*deg,90.0*deg,3.15*cm+0.05*cm,3.25*cm+0.05*cm,3.25*cm+0.05*cm,0.0*deg,0.225*cm+0.05*cm,2.0*cm+0.05*cm,2.0*cm+0.05*cm,0.0*deg);
-    G4Trap *lightguide_small = new G4Trap("lightguide_small",11.22*cm,2.97456*deg,90.0*deg,3.15*cm,3.25*cm,3.25*cm,0.0*deg,0.225*cm,2.0*cm,2.0*cm,0.0*deg);
-    
-    G4VSolid *lightguide_virt = new G4SubtractionSolid("lightguide_virt", lightguide_big, lightguide_small);
-    
-    G4LogicalVolume *lightguide_log = new G4LogicalVolume(lightguide_virt, Mirror, "LG_log",0,0,0);
-    
-    G4Cons* mirror_tube = new G4Cons("TMirror",cone_rmin2,cone_rmax2,2.5*cm,2.55*cm,lngth,cone_sphi,cone_fphi);
-    
-    G4LogicalVolume* tmirror_log = new G4LogicalVolume(mirror_tube,Mirror,"TMirror",0,0,0);
-    
-
+   //---quartz
+   G4double q_lz=8.4*cm; //moller quartz
+   G4double q_ly=2.0*cm;  // 1.5cm thick nominal
+   G4double q_lx_long=16.0*cm;
+   G4double q_lx_short=q_lx_long-q_ly; // we are doing 45 degree single cut
+   G4Trap* quartz_box = new G4Trap("Quartz", q_lz, q_ly, q_lx_long, q_lx_short);
+   G4LogicalVolume* quartz_log = new G4LogicalVolume(quartz_box,Quartz,"Quartz_log",0,0,0);
    
-    // PMT and cathode
-   
-	G4double anini = 0.*deg;
-	G4double anspan = 360.*deg;
+   //make quartz sensitive detector
+   qsimScintDetector* quartzSD = new qsimScintDetector("quartzSD", 10);   // detector ID is 10
+   SDman->AddNewDetector(quartzSD);
+   quartz_log->SetSensitiveDetector(quartzSD);
+
+   //put quartz in det box  
+   G4RotationMatrix* rotate_quartz = new G4RotationMatrix;
+   rotate_quartz->rotateX(-M_PI/2.0*rad);  // cut part is facing the beam dump
+   G4VPhysicalVolume* quartz_phys = new G4PVPlacement(rotate_quartz,G4ThreeVector(0,0,0),quartz_log,"Quartz", det_log,false,0); //quartz center is on (0,0,0)
+
+
  
-    G4double prin = 0;
-    G4double prout = 2.6*cm;
-    G4double plngth = 1.5*mm;
-    
-    G4Tubs* pmt = new G4Tubs("PMT",prin,prout,plngth,anini,anspan);
-    
-    G4LogicalVolume* pmt_log
-    = new G4LogicalVolume(pmt,Air,"PMT",0,0,0);
+  ///-------------------single cut quartz   
+  ///---Super-elastic style quartz
+/*
 
-    G4String DetSDname = "tracker1";
-    
-    G4double cin = 0;
-    G4double cout = 2.6*cm;
-    G4double clngth = 0.1*mm;
-    
+   //---quartz
+   G4double q_lz=17.1*cm; //moller quartz
+   G4double q_ly=2.0*cm;  // 1.5cm thick nominal
+   G4double q_lx_long=4.0*cm;
+   G4double q_lx_short=q_lx_long-q_ly; // we are doing 45 degree single cut
+   G4Trap* quartz_box = new G4Trap("Quartz", q_lz, q_ly, q_lx_long, q_lx_short);
+   G4LogicalVolume* quartz_log = new G4LogicalVolume(quartz_box,Quartz,"Quartz_log",0,0,0);
+   
+   //make quartz sensitive detector
+   qsimScintDetector* quartzSD = new qsimScintDetector("quartzSD", 10);   // detector ID is 10
+   SDman->AddNewDetector(quartzSD);
+   quartz_log->SetSensitiveDetector(quartzSD);
+
+   //put quartz in det box
+   G4RotationMatrix* rotate_quartz = new G4RotationMatrix;
+   rotate_quartz->rotateX(-M_PI/2.0*rad);  // cut part is facing the beam dump
+   G4VPhysicalVolume* quartz_phys = new G4PVPlacement(rotate_quartz,G4ThreeVector(0,0,0),quartz_log,"Quartz", det_log,false,0); //quartz center is on (0,0,0)
+
+*/
+
+
+
+/*
+
+
+  ///--------------double cut quartz
+  ///---Moller style quartz
+  
+  //---quartz
+  //define the poligon
+   G4double thickness=1.0*cm;
+   G4double x1=8.0*cm;
+   G4double y1=0.0*cm;
+   
+   G4double x2=8.0*cm - thickness/2;
+   G4double y2=thickness/2;
+ 
+   G4double x3=-8.0*cm;
+   G4double y3=y2;
+ 
+   G4double x4=-8.0*cm;
+   G4double y4=-1.0*y3;
+ 
+   G4double x5=x2;
+   G4double y5=-1.0*y2;
+ 
+   std::vector<G4TwoVector> bar_poligon(5);
+   bar_poligon[0]= G4TwoVector(x1,y1);
+   bar_poligon[1]= G4TwoVector(x2,y2);
+   bar_poligon[2]= G4TwoVector(x3,y3);
+   bar_poligon[3]= G4TwoVector(x4,y4);
+   bar_poligon[4]= G4TwoVector(x5,y5);
+ 
+   G4ExtrudedSolid *quartz_box=new G4ExtrudedSolid("Quartz",bar_poligon, 4.2*cm, G4TwoVector(0,0),1.0, G4TwoVector(0,0), 1.0 );
+
+   G4LogicalVolume* quartz_log = new G4LogicalVolume(quartz_box,Quartz,"Quartz_log",0,0,0);
+   
+   //make quartz sensitive detector
+   qsimScintDetector* quartzSD = new qsimScintDetector("quartzSD", 10);   // detector ID is 10
+   SDman->AddNewDetector(quartzSD);
+   quartz_log->SetSensitiveDetector(quartzSD);
+
+   //put quartz in det box
+   G4RotationMatrix* rotate_quartz = new G4RotationMatrix;
+   rotate_quartz->rotateX(-M_PI/2.0*rad);  // cut part is facing the beam dump
+   G4VPhysicalVolume* quartz_phys = new G4PVPlacement(rotate_quartz,G4ThreeVector(0,0,0),quartz_log,"Quartz", det_log,false,0); //quartz center is on (0,0,0)
+
+*/
+
+/*
+  ///--------------double cut quartz
+  ///---super elastic style quartz
+  
+  //---quartz
+  //define the poligon
+   G4double thickness=2.0*cm;
+   G4double x1=2.0*cm;
+   G4double y1=0.0*cm;
+   
+   G4double x2=2.0*cm - thickness/2;
+   G4double y2=thickness/2;
+ 
+   G4double x3=-2.0*cm;
+   G4double y3=y2;
+ 
+   G4double x4=-2.0*cm;
+   G4double y4=-1.0*y3;
+ 
+   G4double x5=x2;
+   G4double y5=-1.0*y2;
+ 
+   std::vector<G4TwoVector> bar_poligon(5);
+   bar_poligon[0]= G4TwoVector(x1,y1);
+   bar_poligon[1]= G4TwoVector(x2,y2);
+   bar_poligon[2]= G4TwoVector(x3,y3);
+   bar_poligon[3]= G4TwoVector(x4,y4);
+   bar_poligon[4]= G4TwoVector(x5,y5);
+ 
+   G4ExtrudedSolid *quartz_box=new G4ExtrudedSolid("Quartz",bar_poligon, 17.2/2.0*cm, G4TwoVector(0,0),1.0, G4TwoVector(0,0), 1.0 );
+
+   G4LogicalVolume* quartz_log = new G4LogicalVolume(quartz_box,Quartz,"Quartz_log",0,0,0);
+   
+   //make quartz sensitive detector
+   qsimScintDetector* quartzSD = new qsimScintDetector("quartzSD", 10);   // detector ID is 10
+   SDman->AddNewDetector(quartzSD);
+   quartz_log->SetSensitiveDetector(quartzSD);
+
+   //put quartz in det box
+   G4RotationMatrix* rotate_quartz = new G4RotationMatrix;
+   rotate_quartz->rotateX(-M_PI/2.0*rad);  // cut part is facing the beam dump
+   G4VPhysicalVolume* quartz_phys = new G4PVPlacement(rotate_quartz,G4ThreeVector(0,0,0),quartz_log,"Quartz", det_log,false,0); //quartz center is on (0,0,0)
+
+*/
+// FIXME this is where things change -currently 2cm thick Moller single cut. the comments below is for 1cm thick
+G4double in = 2.54*cm;
+
+G4double thick_ness = 0.47625*cm;
+
+G4double x_1 = 7*cm;
+G4double y_1 = -0.5*cm;//-1
+
+G4double x_2 = -1*cm;
+G4double y_2 = -0.5*cm; // -1 
+
+G4double x_3 = -1*cm;
+G4double y_3 = 0.5*cm;//1
+
+G4double x_4 = 7*cm;
+G4double y_4 = 0.5*cm//1
+
+G4double x_5 =  7*cm + 8*cos(11.5*M_PI/180*rad)*cm;
+//    7*cm + 8*cos(11.5*M_PI/180*rad)*cm;
+G4double y_5 = 0.5*cm + 8*sin(11.5*M_PI/180*rad)*cm;     //1.*cm + 8*sin(11.5*M_PI/180*rad)*cm;
+
+G4double x_6 = x_5 + 3.5*cm;//+3.0*cm
+G4double y_6 = y_5;
+
+G4double x_7 = x_6;
+G4double y_7 = y_6 -8.4*cm;
+
+G4double x_8 = x_1 + 9.75*cos(36.4822801*deg)*cm;//x_1 + 9.19*cos(36.4822801*deg)*cm
+G4double y_8 = y_1 - 9.75*sin(36.4822801*deg)*cm;//y_1 - 9.19*sin(36.4822801*deg)*cm
+
+G4double poss = q_lz/2 + thick_ness/2;
+
+std::vector<G4TwoVector> bar_polygon(8);
+bar_polygon[0] = G4TwoVector(x_1,y_1);
+bar_polygon[1] = G4TwoVector(x_2,y_2);
+bar_polygon[2] = G4TwoVector(x_3,y_3);
+bar_polygon[3] = G4TwoVector(x_4,y_4);
+bar_polygon[4] = G4TwoVector(x_5,y_5);
+bar_polygon[5] = G4TwoVector(x_6,y_6);
+bar_polygon[6] = G4TwoVector(x_7,y_7);
+bar_polygon[7] = G4TwoVector(x_8,y_8);
+
+
+
+G4ExtrudedSolid* cone_side = new G4ExtrudedSolid("Cone_Side",bar_polygon,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* cone_log = new G4LogicalVolume(cone_side,AlMylar,"Cone_log",0,0,0);
+
+G4RotationMatrix* rotcone_side = new G4RotationMatrix();
+rotcone_side->rotateX(-M_PI/2*rad);
+G4VPhysicalVolume* cone_phys1 = new G4PVPlacement(rotcone_side,G4ThreeVector(0,poss,0),cone_log,"Cone side1",det_log,false,0);
+
+
+G4VPhysicalVolume* cone_phys2 = new G4PVPlacement(rotcone_side,G4ThreeVector(0,-poss,0),cone_log,"Cone side2",det_log,false,0);
+
+
+G4VisAttributes *con = new G4VisAttributes();
+con->SetColour(1.0,0.0,1.0);
+cone_log->SetVisAttributes(con);
+
+/*
+//paper for quartz
+G4double px1 = q_lx_short/2;
+G4double py1 = q_lz/2;
+G4double pz1 = in/1000;
+
+G4Box* papert = new G4Box("papert",px1,py1,pz1);
+G4LogicalVolume* papert_l = new G4LogicalVolume(papert,Paper,"PaperL",0,0,0);
+G4VPhysicalVolume* papert_p = new G4PVPlacement(0,G4ThreeVector(0,0,q_ly/2+pz1),papert_l,"Paper Top",det_log,false,0);
+
+G4VisAttributes *paper = new G4VisAttributes();
+paper->SetColour(0.0,0.0,0.0);
+papert_l->SetVisAttributes(paper);
+
+G4double px2 = q_lx_long/2;
+G4double py2 = q_lz/2;
+G4double pz2 = in/1000;
+
+G4Box* paperb = new G4Box("paperb",px2,py2,pz2);
+G4LogicalVolume* paperb_l = new G4LogicalVolume(paperb,Paper,"PaperL1",0,0,0,true);
+G4VPhysicalVolume* paperb_p = new G4PVPlacement(0,G4ThreeVector(0,0,-q_ly/2),paperb_l,"Paper Bot",det_log,false,0);
+
+paperb_l->SetVisAttributes(paper);
+
+G4double px3 = q_lz/2;
+G4double py3 = q_ly/2;
+G4double pz3 = pz2;
+
+G4Box* paperba = new G4Box("paperba",px2,py2,pz2);
+G4LogicalVolume* paperba_l = new G4LogicalVolume(paperba,Paper,"PaperL1",0,0,0,true);
+
+G4VPhysicalVolume* paperba_p = new G4PVPlacement(0,G4ThreeVector(-q_lx_short/2,0,0),paperba_l,"Paper Bot",det_log,false,0);
+
+paperba_l->SetVisAttributes(paper);
+
+G4Box* papers = new G4Box("papers",px2,py3,pz3);
+G4LogicalVolume* papers_l = new G4LogicalVolume(papers,Paper,"Papers",0,0,0,true);
+G4VPhysicalVolume* papers_p1 = new G4PVPlacement(rotcone_side,G4ThreeVector(0,q_lz/2,0),papers_l,"PaperSide1",det_log,false,0);
+G4VPhysicalVolume* papers_p2 = new G4PVPlacement(rotcone_side,G4ThreeVector(0,-q_lz/2,0),papers_l,"PaperSide2",det_log,false,0);
+
+papers_l->SetVisAttributes(paper);
+*/
+
+
+//reflector
+G4double xone = x_4;
+G4double yone = q_lz/2 + thick_ness;
+
+G4double xtwo = x_5;
+G4double ytwo = q_lz/2 + thick_ness;
+
+G4double xthr = x_5;
+G4double ythr = -q_lz/2 - thick_ness;
+
+G4double xfo =  x_4;
+G4double yfo =  -q_lz/2 - thick_ness;
+
+
+std::vector<G4TwoVector> barpolygon(4);
+barpolygon[0] = G4TwoVector(xone,yone);
+barpolygon[1] = G4TwoVector(xtwo,ytwo);
+barpolygon[2] = G4TwoVector(xthr,ythr);
+barpolygon[3] = G4TwoVector(xfo,yfo);
+
+G4ExtrudedSolid*  ref_box = new G4ExtrudedSolid("REF",barpolygon,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+
+
+G4LogicalVolume* ref_log = new G4LogicalVolume(ref_box,AlMylar,"Ref_log",0,0,0);
+
+G4RotationMatrix* rot_ref = new G4RotationMatrix();
+rot_ref->rotateY(11.5*M_PI/180*rad);
+
+G4VPhysicalVolume* refl_phy = new G4PVPlacement(rot_ref,G4ThreeVector(0,0,-thick_ness),ref_log,"Reflector",det_log,false,0);
+
+
+G4VisAttributes *reflect = new G4VisAttributes();
+reflect->SetColour(0.0,1.0,1.0);
+ref_log->SetVisAttributes(reflect);
+/*
+//cone bottom
+G4double xuno = x_1;
+G4double yuno = q_lz/2 + thick_ness;
+
+G4double xdos = x_8;
+G4double ydos = q_lz/2 +  thick_ness;
+
+G4double xtres = x_8;
+G4double ytres = -q_lz/2 -thick_ness;
+
+G4double xcuat = x_1;
+G4double ycuat = -q_lz/2 -thick_ness;
+
+std::vector<G4TwoVector> barrpolygon(4);
+barrpolygon[0] = G4TwoVector(xuno,yuno);
+barrpolygon[1] = G4TwoVector(xdos,ydos);
+barrpolygon[2] = G4TwoVector(xtres,ytres);
+barrpolygon[3] = G4TwoVector(xcuat,ycuat);
+
+
+G4ExtrudedSolid* cone_bot = new G4ExtrudedSolid("Bottom",barrpolygon,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+*/
+
+G4double xbox =  (9.35/2)*cm;
+G4double ybox =  (9.75/2)*cm; //(9.19/2)*cm;
+G4double zbox = thick_ness/2;
+
+G4Box* cone_bot = new G4Box("bottom",xbox,ybox,zbox);
+G4LogicalVolume* coneb_log = new G4LogicalVolume(cone_bot,AlMylar,"Coneb_log",0,0,0,true);
+
+
+G4RotationMatrix* rot_coneb = new G4RotationMatrix();
+rot_coneb->rotateY(-36.4822801*M_PI/180*rad);
+
+
+G4VPhysicalVolume* coneb_phy = new G4PVPlacement(rot_coneb,G4ThreeVector(x_1+ ybox*cos(36.4822801*deg),0,-q_ly-ybox*sin(36.4822801*deg)),coneb_log,"coneback",det_log,false,0);
+
+
+
+coneb_log->SetVisAttributes(con);
+
+
+
+
+//another cone top part
+
+std::vector<G4TwoVector> bpol1(4);
+bpol1[0] = G4TwoVector(x_5,q_lz/2+ thick_ness);
+bpol1[1] = G4TwoVector(x_6,q_lz/2+thick_ness);
+bpol1[2] = G4TwoVector(x_6,-(q_lz/2+thick_ness));
+bpol1[3] = G4TwoVector(x_5, -(q_lz/2+thick_ness));
+
+
+G4ExtrudedSolid* con_par1 = new G4ExtrudedSolid("Par",bpol1,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* con_log1 = new G4LogicalVolume(con_par1,AlMylar,"Conepar",0,0,0,true);
+G4VPhysicalVolume* con_phy11 = new G4PVPlacement(0,G4ThreeVector(0,0,y_5+thick_ness/2),con_log1, "cone part11",det_log,false,0);
+G4VPhysicalVolume* con_phy22 = new G4PVPlacement(0,G4ThreeVector(0,0,y_7-thick_ness),con_log1, "cone part22",det_log,false,0);
+
+con_log1->SetVisAttributes(con);
+
+
+
+//Light guide
+//Light guide side
+G4double  lx1 = x_6;
+G4double  ly1 = y_6;
+
+G4double  lx2 = x_6 + 2.94*cm;
+G4double  ly2 = y_6;
+
+G4double  lx3 = lx2 + 39.43217011394904*cm;
+G4double  ly3 = y_6 - 8.022568094008*cm;
+
+G4double  lx4 = lx1 + 2*cm + (39.3*cos(11.5*M_PI/180*rad))*cm;
+G4double  ly4 = ly1 -9.35*cm - (39.3*sin(11.5*M_PI/180*rad))*cm;
+
+G4double  lx5 = lx1 + 2*cm;
+G4double  ly5 = ly1 - 9.35*cm;
+
+G4double lx6  = lx1;
+G4double ly6  = ly1 - 9.35*cm;
+
+std::vector<G4TwoVector> poly(6);
+poly[0] = G4TwoVector(lx1,ly1);
+poly[1] = G4TwoVector(lx2,ly2);
+poly[2] = G4TwoVector(lx3,ly3);
+poly[3] = G4TwoVector(lx4,ly4);
+poly[4] = G4TwoVector(lx5,ly5);
+poly[5] = G4TwoVector(lx6,ly6);
+
+G4ExtrudedSolid* l_g_side = new G4ExtrudedSolid("LGS",poly,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* l_g_slog = new G4LogicalVolume(l_g_side,AlMylar,"LGSL",0,0,0,true);
+
+G4RotationMatrix* rot_l = new G4RotationMatrix();
+rot_l->rotateX(-M_PI/2*rad);
+
+G4VPhysicalVolume* l_g_phy1 = new G4PVPlacement(rot_l,G4ThreeVector(-(x_6 - x_5),q_lz/2 + 1.5*thick_ness,thick_ness),l_g_slog,"LGS1",det_log,false,0);
+G4VPhysicalVolume* l_g_phy2 = new G4PVPlacement(rot_l,G4ThreeVector(-(x_6 - x_5),-q_lz/2 - 1.5*thick_ness,thick_ness),l_g_slog,"LGS2",det_log,false,0);
+
+G4VisAttributes* lg = new G4VisAttributes();
+lg->SetColour(0.0,0.0,1.0);
+l_g_slog->SetVisAttributes(lg);
+
+
+//Light guide top- part 1
+G4double xxuno = lx1;
+G4double yyuno = poss + 1.5*thick_ness;
+
+G4double xxdos = lx2;
+G4double yydos = poss + 1.5*thick_ness;
+
+G4double xxtres = lx2;
+G4double yytres = -poss - 1.5*thick_ness;
+
+G4double xxcuat = lx1;
+G4double yycuat = -poss - 1.5*thick_ness;
+
+
+std::vector<G4TwoVector> topp(4);
+topp[0] = G4TwoVector(xxuno,yyuno);
+topp[1] = G4TwoVector(xxdos,yydos);
+topp[2] = G4TwoVector(xxtres,yytres);
+topp[3] = G4TwoVector(xxcuat,yycuat);
+
+
+G4ExtrudedSolid* lg_top = new G4ExtrudedSolid("LGT",topp,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lgt_log = new G4LogicalVolume(lg_top,Mylar,"LGTL",0,0,0,true);
+G4VPhysicalVolume* ltb_phy = new G4PVPlacement(0,G4ThreeVector(-(x_6-x_5+thick_ness),0,y_5+thick_ness),lgt_log,"LGBP",det_log,false,0);
+
+
+G4VisAttributes* lgt = new G4VisAttributes();
+lgt->SetColour(0.0,0.0,1.0);
+lgt_log->SetVisAttributes(lgt);
+
+
+//Light guide top - part 2
+G4double xxun = lx3 +2*thick_ness;
+G4double yyun = poss + 1.5*thick_ness;
+
+G4double xxdeux = lx2;
+G4double yydeux = poss + 1.5*thick_ness;
+
+G4double xxtrois = lx2;
+G4double yytrois = -poss - 1.5*thick_ness;
+
+G4double xxquatre = lx3 + 2*thick_ness;
+G4double yyquatre = -poss - 1.5*thick_ness;
+
+
+std::vector<G4TwoVector> topb(4);
+topb[0] = G4TwoVector(xxun,yyun);
+topb[1] = G4TwoVector(xxdeux,yydeux);
+topb[2] = G4TwoVector(xxtrois,yytrois);
+topb[3] = G4TwoVector(xxquatre,yyquatre);
+
+G4ExtrudedSolid* lg_top1 = new G4ExtrudedSolid("LGT",topb,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lgt_log1 = new G4LogicalVolume(lg_top1,AlMylar,"LGTL",0,0,0,true);
+
+
+G4RotationMatrix *rot_ll = new G4RotationMatrix();
+rot_ll->rotateY(-11.5*M_PI/180*rad);
+
+G4VPhysicalVolume* ltb_phy1 = new G4PVPlacement(rot_ll,G4ThreeVector(-2*cm -1.75*thick_ness,0,poss+ 5.25*thick_ness),lgt_log1,"LGBP",det_log,false,0);
+
+
+
+lgt_log1->SetVisAttributes(lgt);
+
+
+
+//Light guide bottom- Part 1
+G4double xx1 = lx5;
+G4double yy1 = -poss - 1.5*thick_ness;
+
+G4double xx2 = lx4 + 1.5*thick_ness;
+G4double yy2 = -poss - 1.5*thick_ness;
+
+G4double xx3 = lx4 + 1.5*thick_ness;
+G4double yy3 = poss + 1.5*thick_ness;
+
+G4double xx4 = lx5;
+G4double yy4 = poss + 1.5*thick_ness;
+
+
+std::vector<G4TwoVector> botp(4);
+botp[0] = G4TwoVector(xx1,yy1);
+botp[1] = G4TwoVector(xx2,yy2);
+botp[2] = G4TwoVector(xx3,yy3);
+botp[3] = G4TwoVector(xx4,yy4);
+
+G4ExtrudedSolid* lg_bot = new G4ExtrudedSolid("LGB",botp,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lgb_log = new G4LogicalVolume(lg_bot,AlMylar,"LGBL",0,0,0,true);
+
+G4VPhysicalVolume* lgb_phy = new G4PVPlacement(rot_ll,G4ThreeVector((-2*cm - thick_ness),0,y_7 + 7*thick_ness),lgb_log,"LGB",det_log,false,0); 
+
+
+G4VisAttributes* lgb = new G4VisAttributes();
+lgb->SetColour(0.0,0.0,1.0);
+lgb_log->SetVisAttributes(lgb);
+
+
+
+//Light guide bottom- Part 2
+G4double xx11 = lx5;
+G4double yy11 = -poss - 1.5*thick_ness;
+
+G4double xx22 = lx6;
+G4double yy22 = -poss - 1.5*thick_ness;
+
+G4double xx33 = lx6;
+G4double yy33 = poss + 1.5*thick_ness;
+
+G4double xx44 = lx5;
+G4double yy44 = poss + 1.5*thick_ness;
+
+
+std::vector<G4TwoVector> botp1(4);
+botp1[0] = G4TwoVector(xx11,yy11);
+botp1[1] = G4TwoVector(xx22,yy22);
+botp1[2] = G4TwoVector(xx33,yy33);
+botp1[3] = G4TwoVector(xx44,yy44);
+
+G4ExtrudedSolid* lg_bot2 = new G4ExtrudedSolid("LGB",botp1,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lgb_log2 = new G4LogicalVolume(lg_bot2,AlMylar,"LGBL",0,0,0,true);
+
+G4VPhysicalVolume* lgb_phy2 = new G4PVPlacement(0,G4ThreeVector(-(x_6-x_5),0,-q_lz+ 4*thick_ness),lgb_log2,"LGBP",det_log,false,0);
+
+
+lgb_log2->SetVisAttributes(lgb);
+
+/*
+G4double pos_s = 4.2*cm + thick_ness;
+
+//Double cut 1 cm Moller cone sides
+G4double x_11 = 7.0*cm;
+G4double y_11 = -0.5*cm;
+
+G4double x_22 = -1.0*cm;
+G4double y_22 = -0.5*cm;
+
+G4double x_33 = -1.0*cm;
+G4double y_33 = 0.5*cm;
+
+G4double x_44 = 7.0*cm;
+G4double y_44 = 0.5*cm;
+
+G4double x_55 = x_44 + 8*cos(13.5*M_PI/180*rad)*cm;
+G4double y_55 = y_44 + 8*sin(13.5*M_PI/180*rad)*cm -0.5*cm;
+
+G4double x_66 = x_55;
+G4double y_66 = y_55 + 0.5*cm;
+
+G4double x_77 = x_66 + 2.0*cm;
+G4double y_77 = y_66;
+
+G4double x_88 = x_77;
+G4double y_88 = y_77 - 8.4*cm;
+
+G4double x_99 = x_88 - 2.0*cm;
+G4double y_99 = y_88;
+
+G4double x_1010 = x_11 + 8*cos(21*M_PI/180*rad)*cm;
+G4double y_1010 = y_11 - 8*sin(21*M_PI/180*rad)*cm;
+
+std::vector <G4TwoVector> polyd(10);
+polyd[0] = G4TwoVector(x_11,y_11); 
+polyd[1] = G4TwoVector(x_22,y_22);
+polyd[2] = G4TwoVector(x_33,y_33);
+polyd[3] = G4TwoVector(x_44,y_44);
+polyd[4] = G4TwoVector(x_55,y_55);
+polyd[5] = G4TwoVector(x_66,y_66);
+polyd[6] = G4TwoVector(x_77,y_77);
+polyd[7] = G4TwoVector(x_88,y_88);
+polyd[8] = G4TwoVector(x_99,y_99);
+polyd[9] = G4TwoVector(x_1010,y_1010);
+
+G4RotationMatrix* rot_l = new G4RotationMatrix();
+rot_l->rotateX(-90*deg);
+
+
+G4ExtrudedSolid* doucone = new G4ExtrudedSolid("DC",polyd,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* doucone_log = new G4LogicalVolume(doucone,AlMylar,"DCL",0,0,0,true);
+G4VPhysicalVolume* doucone_phy1 = new G4PVPlacement(rot_l,G4ThreeVector(0,pos_s,0),doucone_log,"DCL1",det_log,false,0);
+G4VPhysicalVolume* doucone_phy2 = new G4PVPlacement(rot_l,G4ThreeVector(0,-pos_s,0),doucone_log,"DCL2",det_log,false,0);
+
+G4VisAttributes* dc_c = new G4VisAttributes();
+dc_c->SetColour(1.0,0.0,1.0);
+doucone_log->SetVisAttributes(dc_c);
+
+
+
+//mirror
+G4double xmir1 = x_44;
+G4double ymir1 = pos_s;
+
+G4double xmir2 = x_55;
+G4double ymir2 = pos_s;
+
+G4double xmir3 = x_55;
+G4double ymir3 = -pos_s;
+
+G4double xmir4 = x_44;
+G4double ymir4 = -pos_s - thick_ness;
+
+std::vector <G4TwoVector> polyd1(4);
+polyd1[0] = G4TwoVector(xmir1,ymir1);
+polyd1[1] = G4TwoVector(xmir2,ymir2);
+polyd1[2] = G4TwoVector(xmir3,ymir3);
+polyd1[3] = G4TwoVector(xmir4,ymir4);
+
+G4ExtrudedSolid* doum = new G4ExtrudedSolid("DM",polyd1,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* doum_log = new G4LogicalVolume(doum,AlMylar,"DML",0,0,0,true);
+
+G4RotationMatrix* rot_mir = new G4RotationMatrix();
+rot_mir->rotateY(13.5*deg);
+
+G4VPhysicalVolume* doum_phy = new G4PVPlacement(rot_mir,G4ThreeVector(thick_ness/2,0,y_11-2*thick_ness),doum_log,"DMP",det_log,false,0);
+
+G4VisAttributes* mir_r = new G4VisAttributes();
+mir_r->SetColour(0.0,1.0,1.0);
+doum_log->SetVisAttributes(mir_r);
+
+
+
+//bottom
+G4double xbox1 = 4*cm;
+G4double ybox1 = (9.35/2)*cm;
+G4double zbox1 = thick_ness/2;
+
+G4Box* bott = new G4Box("Bott",xbox1,ybox1,zbox1);
+G4LogicalVolume* bott_log = new G4LogicalVolume(bott,AlMylar,"DCB",0,0,0,true);
+
+G4RotationMatrix* rot_bott = new G4RotationMatrix();
+rot_bott->rotateY(-21*deg);
+
+G4VPhysicalVolume* bott_phy = new G4PVPlacement(rot_bott,G4ThreeVector(x_11+ybox1*cos(21*deg),0,-0.5*cm -ybox1*sin(21*deg)),bott_log,"BCP",det_log,false,0);
+
+bott_log->SetVisAttributes(dc_c);
+
+
+//dconetopbottom
+G4double xtop1 = x_66; 
+G4double ytop1 = pos_s;
+
+G4double xtop2 = x_77;
+G4double ytop2 = pos_s;
+
+G4double xtop3 = x_77;
+G4double ytop3 = -pos_s;
+
+G4double xtop4 = x_66;
+G4double ytop4 = -pos_s;
+
+std::vector <G4TwoVector> polyd2(4);
+polyd2[0] = G4TwoVector(xtop1,ytop1);
+polyd2[1] = G4TwoVector(xtop2,ytop2);
+polyd2[2] = G4TwoVector(xtop3,ytop3);
+polyd2[3] = G4TwoVector(xtop4,ytop4);
+
+G4ExtrudedSolid* dctop = new G4ExtrudedSolid("DCTB",polyd2,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* dctop_log = new G4LogicalVolume(dctop,AlMylar,"DCTBL",0,0,0,true);
+G4VPhysicalVolume* dctop_phys1 = new G4PVPlacement(0,G4ThreeVector(0,0,y_55 -thick_ness/2),dctop_log,"DCTBP1",det_log,false,0);
+G4VPhysicalVolume* dctop_phys2 = new G4PVPlacement(0,G4ThreeVector(0,0,y_88 +thick_ness/2),dctop_log,"DCTBP2",det_log,false,0);
+
+dctop_log->SetVisAttributes(dc_c);
+
+
+//cone rear
+G4double xrear1 = 1.10*cm; 
+G4double yrear1 = (9.35/2)*cm;
+G4double zrear1 = thick_ness/2;
+
+G4Box* dcrear = new G4Box("DCREAR",xrear1,yrear1,zrear1);
+G4LogicalVolume* dcrear_log = new G4LogicalVolume(dcrear,AlMylar,"DCRL1",0,0,0,true);
+
+G4RotationMatrix* rot_re = new G4RotationMatrix();
+rot_re->rotateY(90*deg);
+
+G4VPhysicalVolume* dcrear_phys = new G4PVPlacement(rot_re,G4ThreeVector(11*cm+xbox1*cos(21*deg),0,-7-xbox1*cos(21*deg)),dcrear_log,"DCRP",det_log,false,0);
+
+
+
+dcrear_log->SetVisAttributes(dc_c);
+
+
+
+//Double cut 2cm Moller cone sides
+G4double X1 = 3.0*cm; 
+G4double Y1 = -1.0*cm;
+
+G4double X2 = -5.0*cm;
+G4double Y2 = -1.0*cm;
+
+G4double X3 = X2;
+G4double Y3 = -Y2;
+
+G4double X4 = X1;
+G4double Y4 = Y3;
+
+G4double X5 = X4 + 8*cos(13.5*M_PI/180*rad)*cm;
+G4double Y5 = Y4 + 8*sin(13.5*M_PI/180*rad)*cm;
+
+G4double X6 = X5 + 2.5*cm; 
+G4double Y6 = Y5;
+
+G4double X7 = X6;
+G4double Y7 = Y5 - 8.4*cm;
+
+G4double X8 = X5;
+G4double Y8 = Y7;
+
+G4double X9 = X1 + 8*cos(20.5*M_PI/180*rad)*cm;
+G4double Y9 = Y1 - 8*sin(20.5*M_PI/180*rad)*cm;
+
+
+
+
+
+
+
+
+//LGDC
+G4double lgsx1 = x_66; //X6;
+G4double lgsy1 = y_66; //Y6;
+
+G4double lgsx2 = x_66 + 2.53*cm;
+G4double lgsy2 = y_66;
+
+G4double lgsx3 = lgsx2 + 40.13*cos(6.5*deg)*cm;
+G4double lgsy3 = lgsy2 - 40.13*sin(6.5*deg)*cm;
+
+G4double lgsx4 = x_66 + 2*cm + 39.6*cos(6.5*deg)*cm; 
+G4double lgsy4 = lgsy1 - 9.35*cm - 39.6*sin(6.5*deg)*cm; 
+ 
+G4double lgsx5 = x_66 + 2*cm;
+G4double lgsy5 = lgsy1 - 9.35*cm; 
+  
+G4double lgsx6 = lgsx1;
+G4double lgsy6 = lgsy1 - 9.35*cm;
+
+std::vector <G4TwoVector> polyd4(6);
+polyd4[0] = G4TwoVector(lgsx1,lgsy1);
+polyd4[1] = G4TwoVector(lgsx2,lgsy2);
+polyd4[2] = G4TwoVector(lgsx3,lgsy3);
+polyd4[3] = G4TwoVector(lgsx4,lgsy4);
+polyd4[4] = G4TwoVector(lgsx5,lgsy5);
+polyd4[5] = G4TwoVector(lgsx6,lgsy6);
+
+G4ExtrudedSolid* lgdc = new G4ExtrudedSolid("LGDC", polyd4,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lgdc_log = new G4LogicalVolume(lgdc, AlMylar, "LGDCL", 0,0,0,true);
+
+G4RotationMatrix* rot = new G4RotationMatrix();
+rot->rotateX(-90*deg);
+
+G4VPhysicalVolume* lgdc_phys1 = new G4PVPlacement(rot,G4ThreeVector(0,pos_s+thick_ness,0),lgdc_log, "LGDCP1", det_log,false,0);
+G4VPhysicalVolume* lgdc_phys2 = new G4PVPlacement(rot,G4ThreeVector(0,-pos_s-thick_ness,0),lgdc_log, "LGDCP2", det_log,false,0);
+
+G4VisAttributes* lg = new G4VisAttributes();
+lg->SetColour(0.0,0.0,1.0);
+lgdc_log->SetVisAttributes(lg);
+
+
+std::vector<G4TwoVector>polyd5(4);
+polyd5[0] = G4TwoVector(lgsx2,pos_s+1.5*thick_ness);
+polyd5[1] = G4TwoVector(lgsx2, -pos_s-1.5*thick_ness);
+polyd5[2] = G4TwoVector(lgsx3+2*thick_ness, -pos_s-1.5*thick_ness);
+polyd5[3] = G4TwoVector(lgsx3+2*thick_ness, pos_s+1.5*thick_ness);
+
+G4ExtrudedSolid* lgdct = new G4ExtrudedSolid("LGDCT",polyd5,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lgdct_log = new G4LogicalVolume(lgdct, AlMylar,"LGDCTL",0,0,0,true);
+
+G4RotationMatrix* rot_lgbot = new G4RotationMatrix();
+rot_lgbot->rotateY(-6.5*deg);
+
+G4VPhysicalVolume* lgdct_phys = new G4PVPlacement(rot_lgbot, G4ThreeVector(-thick_ness,0,5*cm -1.5*thick_ness),lgdct_log,"LGDCTP",det_log,false,0);
+
+lgdct_log->SetVisAttributes(lg);
+
+std::vector<G4TwoVector>polyd6(4);
+polyd6[0] = G4TwoVector(lgsx5,pos_s+1.5*thick_ness);
+polyd6[1] = G4TwoVector(lgsx5, -pos_s-1.5*thick_ness);
+polyd6[2] = G4TwoVector(lgsx4, -pos_s-1.5*thick_ness);
+polyd6[3] = G4TwoVector(lgsx4, pos_s+1.5*thick_ness);
+
+G4ExtrudedSolid* lgdcb = new G4ExtrudedSolid("LGDCB",polyd6,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lgdcb_log = new G4LogicalVolume(lgdcb, AlMylar,"LGDCTL",0,0,0,true);
+
+G4VPhysicalVolume* lgdcb_phys = new G4PVPlacement(rot_lgbot, G4ThreeVector(thick_ness,0,y_88+2*thick_ness),lgdcb_log,"LGDCBP",det_log,false,0);
+
+lgdct_log->SetVisAttributes(lg);
+lgdcb_log->SetVisAttributes(lg);
+
+
+std::vector<G4TwoVector>polyd7(4);
+polyd7[0] = G4TwoVector(lgsx1,pos_s+1.5*thick_ness);
+polyd7[1] = G4TwoVector(lgsx2, pos_s+1.5*thick_ness);
+polyd7[2] = G4TwoVector(lgsx2, -pos_s-1.5*thick_ness);
+polyd7[3] = G4TwoVector(lgsx1, -pos_s-1.5*thick_ness);
+
+G4ExtrudedSolid* lt = new G4ExtrudedSolid("LT",polyd7,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lt_log = new G4LogicalVolume(lt, AlMylar,"LTL",0,0,0,true);
+
+G4VPhysicalVolume* lt_phys = new G4PVPlacement(0, G4ThreeVector(0,0,y_55+thick_ness),lt_log,"LTP",det_log,false,0);
+
+std::vector<G4TwoVector>polyd8(4);
+polyd8[0] = G4TwoVector(lgsx5,pos_s+1.5*thick_ness);
+polyd8[1] = G4TwoVector(lgsx5,-pos_s-1.5*thick_ness);
+polyd8[2] = G4TwoVector(lgsx6,-pos_s-1.5*thick_ness);
+polyd8[3] = G4TwoVector(lgsx6,pos_s+1.5*thick_ness);
+
+G4ExtrudedSolid* lb = new G4ExtrudedSolid("LB",polyd8,thick_ness/2,G4TwoVector(0,0),1.0,G4TwoVector(0,0),1.0);
+G4LogicalVolume* lb_log = new G4LogicalVolume(lb, AlMylar,"LGDCTL",0,0,0,true);
+
+G4VPhysicalVolume* lb_phys = new G4PVPlacement(0, G4ThreeVector(0,0,y_88-thick_ness),lb_log,"LGDCBP",det_log,false,0);
+
+lt_log->SetVisAttributes(lg);
+lb_log->SetVisAttributes(lg);
+
+
+//Double cut 2cm Moller cone sides
+G4double X1 = 3.0*cm; 
+G4double Y1 = -1.0*cm;
+
+G4double X2 = -5.0*cm;
+G4double Y2 = -1.0*cm;
+
+G4double X3 = X2;
+G4double Y3 = -Y2;
+
+G4double X4 = X1;
+G4double Y4 = Y3;
+
+G4double X5 = X4 + 8*cos(13.5*M_PI/180*rad)*cm;
+G4double Y5 = Y4 + 8*sin(13.5*M_PI/180*rad)*cm;
+
+G4double X6 = X5 + 2.5*cm; 
+G4double Y6 = Y5;
+
+G4double X7 = X6;
+G4double Y7 = Y5 - 8.4*cm;
+
+G4double X8 = X5;
+G4double Y8 = Y7;
+
+G4double X9 = X1 + 8*cos(20.5*M_PI/180*rad)*cm;
+G4double Y9 = Y1 - 8*sin(20.5*M_PI/180*rad)*cm;
+*/
+
+
+//--cathode
+
+   G4double anini=0*deg;
+      G4double anspan=360.0*deg;
+         G4double cin = 0;
+            G4double cout = 7*cm;   //big enough to collect all the photons
+               G4double clngth = 3*mm;
+
+
+
+
+
+
     G4Tubs* cath = new G4Tubs("CATH",cin,cout,clngth,anini,anspan);
+   //---cathode logical 
+   G4LogicalVolume* cath_log = new G4LogicalVolume(cath,CATH,"cath_log",0,0,0);
+    //---make it sensitive
+   qsimDetector* cathSD = new qsimDetector("cathSD", 2); //---ID is 2
     
-    G4LogicalVolume* cath_log
-    = new G4LogicalVolume(cath,CATH,"CATH",0,0,0);
+   SDman->AddNewDetector(cathSD);
+   cath_log->SetSensitiveDetector(cathSD);
     
-    qsimDetector* cathSD = new qsimDetector("cath", 2);
-    
-    SDman->AddNewDetector(cathSD);
-    cath_log->SetSensitiveDetector(cathSD);
-    
-    G4VisAttributes *cathatt = new G4VisAttributes();
-    cathatt->SetColour(1.0, 1.0, 0.2);
-    cath_log->SetVisAttributes(cathatt);
-    
-    
-    // Scintillators
-    // Coincidence volumes **** NOTE: Upper scint is below the quartz (First coincidence w/ e-)
-    
-    
-    G4Box* upperScint = new G4Box("upperScint",4.5*cm,4.5*cm,0.75*cm);
-    G4LogicalVolume* uScint_log = new G4LogicalVolume(upperScint,Air,"upperScint",0,0,0);
-    
-    // Make sensitive
-    DetSDname = "tracker2";
-    
-    qsimScintDetector* upScintSD = new qsimScintDetector(DetSDname, 1);
-    
-    SDman->AddNewDetector(upScintSD);
-    uScint_log->SetSensitiveDetector(upScintSD);
+   G4VisAttributes *cathatt = new G4VisAttributes();
+   cathatt->SetColour(1.0, 1.0, 0.2);
+   cath_log->SetVisAttributes(cathatt);
 
-    G4double upScint_pos;
-    
-    upScint_pos = quartz_z-50*cm; //45*cm; // changed to 45 cm from 50 cm as a rough estimate based on CAD measurements of the PMT model 1 + quartz design on the new stand design.
-    
-    
-    
-    
-    G4Box* lowScint = new G4Box("lowScint",4.5*cm,4.5*cm,0.75*cm);
-    G4LogicalVolume* lScint_log = new G4LogicalVolume(lowScint,Air,"lowScint",0,0,0);
-    
-    // Make sensitive
-    DetSDname = "tracker3";
-    
-    qsimScintDetector* loScintSD = new qsimScintDetector(DetSDname, 2);
-    
-    SDman->AddNewDetector(loScintSD);
-    lScint_log->SetSensitiveDetector(loScintSD);
+ 
+   //put cathode in the det box
+   G4RotationMatrix* rotate_cath =new G4RotationMatrix;
+//   rotate_cath->rotateY(-96.5*deg);
+   rotate_cath->rotateY(-101.5*M_PI/180*rad);
+   
+   //for moller quartz study
+//   G4VPhysicalVolume* cath_phys = new G4PVPlacement(rotate_cath,G4ThreeVector(lgsx3 -thick_ness, thick_ness,-4.2*cm -6*thick_ness),cath_log,"Cathode", det_log,false,0);
+ G4VPhysicalVolume* cath_phys = new G4PVPlacement(rotate_cath,G4ThreeVector(lx3-8*thick_ness,thick_ness,-q_lz - 4*thick_ness),cath_log,"Cathode",det_log,false,0);
+// G4VPhysicalVolume* cath_phys = new G4PVPlacement(rotate_cath,G4ThreeVector(lx3-8*thick_ness,thick_ness,-q_lz- 4*thick_ness),cath_log,"Cathode",det_log,false,0);
 
-    G4double loScint_pos;
-    loScint_pos = upScint_pos+1.006*m; //new setup is 1.02874*m; // measured to be 1.02874 m between the two scintillators in the CAD drawings. Previously was just 1.0 m
+//for super elastic quartz study
+   // G4VPhysicalVolume* cath_phys = new G4PVPlacement(rotate_cath,G4ThreeVector(2.5*cm,0,0),cath_log,"Cathode", det_log,false,0);
 
-    
-    
-    // LEAD BLOCK
-    ///////////////////////////////////////////////////////////////////////////////////////
-    
-    G4Box* Pb_blox = new G4Box("Pb_blox", 10.16*cm,7.62*cm, 10.16*cm);
-    //   expanded to ensure nothing
-    //   can hit the scint. w/o the lead.
-    G4LogicalVolume* Pb_log = new G4LogicalVolume(Pb_blox,Pb_Mat,"Lead",0,0,0);
-    
-    G4double Pb_pos;
-    Pb_pos = loScint_pos-15.35*cm; // new setup is = loScint_pos-18.554*cm; //(-1*quartz_z)+(30.0*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
-    // If fAccBeamStand == true then remove the lead bricks, else leave them
+   // last step....put det_log into world
+   G4RotationMatrix* rotate_det =new G4RotationMatrix;
+  
+   
+ 
+  //rotate_det->rotateZ(0*deg);   //no rotation corresponding to world system 
+ rotate_det->rotateY(fDetAngle);
+  G4VPhysicalVolume* det_phys = new G4PVPlacement(rotate_det,G4ThreeVector(0,0,0),det_log,"detector_phys",world_log,false,0);
 
-    // Detector
+// world is buit already
 
+   // Surfaces
+   // quartz optical surface
+   G4OpticalSurface* OpQuartzSurface = new G4OpticalSurface("QuartzSurface");
+   OpQuartzSurface->SetType(dielectric_dielectric);
+   OpQuartzSurface->SetFinish(ground);
+   OpQuartzSurface->SetModel(glisur);
+   OpQuartzSurface->SetPolish(fQuartzPolish);
     
-	
+   const G4int num=2;
+   G4double Ephoton[num] = {2.038*eV, 4.144*eV};
     
-    // Place physical volumes
+   //OpticalQuartzSurface 
+   G4double RefractiveIndex[num] = {1.46, 1.46};
+   G4double SpecularLobe[num]    = {0.3, 0.3};
+   G4double SpecularSpike[num]   = {0.2, 0.2};
+   G4double Backscatter[num]     = {0.2, 0.2};
     
-    	G4RotationMatrix* detrot = new G4RotationMatrix;
-	G4RotationMatrix* rot_pmt = new G4RotationMatrix;
-	if (fDetMode == 0) {
-		
-    		detrot->rotateY(45.*deg);
-		G4RotationMatrix* rotlg = new G4RotationMatrix;
-		rotlg->rotateY(M_PI/2.*rad);
-		rotlg->rotateZ(-M_PI/2.*rad);
-		    
-		rot_pmt->rotateY(M_PI/2.*rad);
-		G4VPhysicalVolume* tmirror_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+lngth+2.*cm,0.,.9*cm),tmirror_log,"TMirror",det_log,false,0);
-		G4VPhysicalVolume* lightguide_phys = new G4PVPlacement(rotlg,G4ThreeVector(0.*cm,0,-0.375*cm+.9*cm),lightguide_log,"lightguide_phys", det_log,false,0);
-		G4VPhysicalVolume* pmt_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+plngth+7.*cm,0.,.9*cm),pmt_log,"PMT",det_log,false,0);
-		G4VPhysicalVolume* cath_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.25*cm+2.*plngth+7.*cm,0.,.9*cm),cath_log,"CATH",det_log,false,0);
-	}
+   G4MaterialPropertiesTable* table_surface_quartz = new G4MaterialPropertiesTable();
+    
+   table_surface_quartz->AddProperty("RINDEX",                Ephoton, RefractiveIndex, num);
+   table_surface_quartz->AddProperty("SPECULARLOBECONSTANT",  Ephoton, SpecularLobe,    num);
+   table_surface_quartz->AddProperty("SPECULARSPIKECONSTANT", Ephoton, SpecularSpike,   num);
+   table_surface_quartz->AddProperty("BACKSCATTERCONSTANT",   Ephoton, Backscatter,     num);
+   
+   OpQuartzSurface->SetMaterialPropertiesTable(table_surface_quartz);
 
-	if (fDetMode == 1) {
-		    
-    		detrot->rotateY(fDetAngle);
-		rot_pmt -> rotateY(M_PI/4.*rad);
+   G4LogicalBorderSurface* QuartzSurface = new G4LogicalBorderSurface("QuartzSurface",quartz_phys,det_phys,OpQuartzSurface);
+  
+   //reflector surface
+   G4OpticalSurface* OpReflectorSurface = new G4OpticalSurface("ReflectorSurface");
+   OpReflectorSurface->SetType(dielectric_metal);
+   OpReflectorSurface->SetFinish(polishedlumirrorair);
+   OpReflectorSurface->SetModel(glisur);
+   
 
-		G4VPhysicalVolume* pmt_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.5*cm,0.*cm,0.*mm),pmt_log,"PMT",det_log,false,0);
-		G4VPhysicalVolume* cath_phys = new G4PVPlacement(rot_pmt,G4ThreeVector(7.5*cm+plngth*cos(M_PI/4*rad)*mm,0.*cm,-plngth*cos(M_PI/4.*rad)*mm),cath_log,"CATH",det_log,false,0);
-	}
+   G4MaterialPropertiesTable* table_surface_mirror = new G4MaterialPropertiesTable();
+   table_surface_mirror->AddProperty("REFLECTIVITY",PhotonEnergy,Reflectivity_Mirror,nEntries);
+
+   OpReflectorSurface->SetMaterialPropertiesTable(table_surface_mirror);
+   
+  G4LogicalSkinSurface* MirrorSurface = new G4LogicalSkinSurface("ReflectorSurface",ref_log,OpReflectorSurface);
+ //G4LogicalSkinSurface* MirrorSurface = new G4LogicalSkinSurface("ReflectorSurface",doum_log,OpReflectorSurface);
+   
+   G4OpticalSurface* OpMylarSurface = new G4OpticalSurface("MylarSurface");
+   OpMylarSurface->SetType(dielectric_metal);
+   OpMylarSurface->SetFinish(polishedlumirrorair);
+   OpMylarSurface->SetModel(glisur);
+
+   G4MaterialPropertiesTable* table_surface_mylar = new G4MaterialPropertiesTable();
+   table_surface_mylar->AddProperty("REFLECTIVITY(M)",PhotonEnergy,Reflect_LG,nEntries); 
+
+   OpMylarSurface->SetMaterialPropertiesTable(table_surface_mylar);
 
 
-    G4VPhysicalVolume* det_phys
-    = new G4PVPlacement(detrot,G4ThreeVector(fDetPosX,fDetPosY,0.*cm),det_log,"detector_phys",world_log,false,0);
-	
+  G4LogicalSkinSurface* LGSurface1 = new G4LogicalSkinSurface("LGSurface1",l_g_slog,OpMylarSurface);
+  G4LogicalSkinSurface* LGSurface2 = new G4LogicalSkinSurface("LGSurface2",lgt_log,OpMylarSurface);
+  G4LogicalSkinSurface* LGSurface3 = new G4LogicalSkinSurface("LGSurface3",lgt_log1,OpMylarSurface);
+  G4LogicalSkinSurface* LGSurface4 = new G4LogicalSkinSurface("LGSurface4",lgb_log,OpMylarSurface);   
+  G4LogicalSkinSurface* LGSurface5 = new G4LogicalSkinSurface("LGSurface5",lgb_log2,OpMylarSurface); 
+  
+  G4LogicalSkinSurface* Cone_Side = new G4LogicalSkinSurface("ConeSide",cone_log,OpMylarSurface);
+  G4LogicalSkinSurface* Cone_bott = new G4LogicalSkinSurface("ConeBottom",coneb_log,OpMylarSurface); 
     
-    if (fStandMode == 1) {
-        G4PVPlacement* uScint_phys = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,upScint_pos-1.*cm),uScint_log,"upperScint",world_log,false,0);
-        G4PVPlacement* lScint_phys = new G4PVPlacement(0,G4ThreeVector(0.0,0.0,loScint_pos),lScint_log,"lowerScint",world_log,false,0);
-        G4PVPlacement* Pb_phys = new G4PVPlacement(0,G4ThreeVector(0.0,0.0*cm,Pb_pos),Pb_log,"Pb",world_log,false,0);
-    }
+  //G4LogicalSkinSurface* LGSurface1 = new G4LogicalSkinSurface("LGSurface1",lgdct_log,OpMylarSurface);
+  //G4LogicalSkinSurface* LGSurface2 = new G4LogicalSkinSurface("LGSurface2",lgdcb_log,OpMylarSurface);
+  //G4LogicalSkinSurface* LGSurface3 = new G4LogicalSkinSurface("LGSurface3",lb_log,OpMylarSurface);
+  //G4LogicalSkinSurface* LGSurface4 = new G4LogicalSkinSurface("LGSurface4",lt_log,OpMylarSurface);   
+  //4LogicalSkinSurface* LGSurface5 = new G4LogicalSkinSurface("LGSurface5",lgdc_log,OpMylarSurface); 
+  
+  //G4LogicalSkinSurface* Cone_Side = new G4LogicalSkinSurface("ConeSide",doucone_log,OpMylarSurface);
+ // G4LogicalSkinSurface* Cone_bott = new G4LogicalSkinSurface("ConeBottom",bott_log,OpMylarSurface); 
+ // G4LogicalSkinSurface* Cone_rear = new G4LogicalSkinSurface("ConeRear",dcrear_log,OpReflectorSurface);
+ // G4LogicalSkinSurface* Cone_top = new G4LogicalSkinSurface("ConeTop",dctop_log,OpMylarSurface);
 
+
+   // cathode surface
+  
+   G4OpticalSurface* OpCathodeSurface = new G4OpticalSurface("CathodeSurface");
+   OpCathodeSurface->SetType(dielectric_metal);
+   OpCathodeSurface->SetFinish(polishedlumirrorair);
+   OpCathodeSurface->SetModel(glisur);
     
-    
-    
-    
-    // Surfaces
-    
-    
-    // quartz
-    G4OpticalSurface* OpQuartzSurface = new G4OpticalSurface("QuartzSurface");
-    OpQuartzSurface->SetType(dielectric_dielectric);
-    OpQuartzSurface->SetFinish(ground);
-    OpQuartzSurface->SetModel(glisur);
-    OpQuartzSurface->SetPolish(fQuartzPolish);
-    
-    G4LogicalBorderSurface* QuartzSurface =
-    new G4LogicalBorderSurface("QuartzSurface",quartz_phys,det_phys,OpQuartzSurface);
-    
-    // mirrors and cathode
-    G4OpticalSurface* MOpSurface = new G4OpticalSurface("MirrorOpSurface");
-    G4OpticalSurface* CTHOpSurface = new G4OpticalSurface("CathodeOpSurface");
-    
-    MOpSurface -> SetType(dielectric_metal);
-    MOpSurface -> SetFinish(polishedlumirrorair);
-    MOpSurface -> SetModel(glisur);
-    
-    CTHOpSurface -> SetType(dielectric_metal);
-    CTHOpSurface -> SetFinish(polishedlumirrorair);
-    CTHOpSurface -> SetModel(glisur);
-    
-    const G4int num = 2;
-    G4double Ephoton[num] = {2.038*eV, 4.144*eV};
-    
-    G4MaterialPropertiesTable* MOpSurfaceProperty = new G4MaterialPropertiesTable();
-    G4MaterialPropertiesTable* COpSurfaceProperty = new G4MaterialPropertiesTable();
-    G4MaterialPropertiesTable* TubeSurfaceProperty = new G4MaterialPropertiesTable();
-    
-    MOpSurfaceProperty -> AddProperty("REFLECTIVITY",PhotonEnergy,Reflectivity1,nEntries);
-    
-    MOpSurface -> SetMaterialPropertiesTable(MOpSurfaceProperty);
-    
-    COpSurfaceProperty -> AddProperty("REFLECTIVITY",PhotonEnergy,Reflectivity2,nEntries);
-    COpSurfaceProperty -> AddProperty("EFFICIENCY",PhotonEnergy,EfficiencyArray,nEntries);
-    
-    
-    CTHOpSurface -> SetMaterialPropertiesTable(COpSurfaceProperty);
-    
-    if (fDetMode == 0) {
-        G4LogicalSkinSurface* TubeSurface_1 = new
-        G4LogicalSkinSurface("TubeMirrorOpS_1",tmirror_log,MOpSurface);
-        G4LogicalSkinSurface* lightguideSurface = new
-        G4LogicalSkinSurface("lightguideOps",lightguide_log,MOpSurface);
-    }
-    
-    G4LogicalSkinSurface* CathSurface = new
-    G4LogicalSkinSurface("CathOpS1", cath_log,CTHOpSurface);
-    
-    // Generate & Add Material Properties Table attached to the optical surfaces
-    
-    //OpticalQuartzSurface 
-    G4double RefractiveIndex[num] = {1.46, 1.46};
-    G4double SpecularLobe[num]    = {0.3, 0.3};
-    G4double SpecularSpike[num]   = {0.2, 0.2};
-    G4double Backscatter[num]     = {0.2, 0.2};
-    
-    G4MaterialPropertiesTable* myST1 = new G4MaterialPropertiesTable();
-    
-    myST1->AddProperty("RINDEX",                Ephoton, RefractiveIndex, num);
-    myST1->AddProperty("SPECULARLOBECONSTANT",  Ephoton, SpecularLobe,    num);
-    myST1->AddProperty("SPECULARSPIKECONSTANT", Ephoton, SpecularSpike,   num);
-    myST1->AddProperty("BACKSCATTERCONSTANT",   Ephoton, Backscatter,     num);
-    
-    OpQuartzSurface->SetMaterialPropertiesTable(myST1);
-    
+   G4MaterialPropertiesTable* table_surface_cathode = new G4MaterialPropertiesTable();
+   table_surface_cathode->AddProperty("REFLECTIVITY", PhotonEnergy, Reflectivity_cathode, nEntries);
+   table_surface_cathode->AddProperty("EFFICIENCY", PhotonEnergy, Efficiency_cathode, nEntries );
+
+   OpCathodeSurface->SetMaterialPropertiesTable(table_surface_cathode);
+
+   G4LogicalSkinSurface *cathodeSurface=new G4LogicalSkinSurface("CathodeOpsurface",cath_log,OpCathodeSurface);
+  //G4LogicalBorderSurface is a class for surfaces defined by the boundary of two physical volumes
+//G4LogicalSkinSurface is a class for the surface surronding a single logical volume
+
+
     //always return the physical World
     return world_phys;
 }

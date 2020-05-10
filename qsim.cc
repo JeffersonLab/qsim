@@ -8,9 +8,12 @@
   and remoll
 
 */
+#include<iostream>
+#include<fstream>
+//using namespace std;
+
 
 #include "CLHEP/Random/Random.h"
-
 #include "qsimRunAction.hh"
 #include "qsimPrimaryGeneratorAction.hh"
 #include "qsimEventAction.hh"
@@ -54,6 +57,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#ifdef __APPLE__
+#include <unistd.h>
+#endif
+
+#include <stdio.h>
+#include <time.h>
+
 // How do I change the display size of qsim to be smaller for better viewing on small screens?
 // How do I get changes of qsim detector construction and primary event generators to affect changes if the main function has already called the default values hardcoded inerDetectorConstruction* detector = new qsimDetectorConstruction();
 
@@ -61,11 +71,29 @@ int main(int argc, char** argv){
 
     // Initialize the CLHEP random engine used by
     // "shoot" type functions
+    
+    long seed; 
+    long seeds[2]; 
+    seed= time(0) + (int) getpid();
 
-    unsigned int seed = time(0);
+    unsigned int devrandseed = 0; 
+    
+    FILE *fdrand = fopen("/dev/urandom", "r");
+    if(fdrand){
+       fread(&devrandseed, sizeof(int), 1, fdrand);
+       seed += devrandseed;
+       fclose(fdrand);
+    }  
 
-    CLHEP::HepRandom::createInstance();
-    CLHEP::HepRandom::setTheSeed(seed);
+
+//    CLHEP::HepRandom::createInstance();
+    G4Random::setTheSeed(seed);
+
+    G4Random::showEngineStatus();
+
+    G4cout << seed << G4endl;
+
+    
 
     qsimIO *io = new qsimIO();
 
@@ -114,7 +142,9 @@ int main(int argc, char** argv){
     // Initialize Run manager
 		////////////////////////////////////////////////////////////////////////////
 		
-		//runManager->Initialize(); 
+           runManager->Initialize(); 
+
+
 
 		// do initialization in all macro files, 
 		//see remoll examples for assistance. 
@@ -132,16 +162,20 @@ int main(int argc, char** argv){
 	
 #if defined(G4UI_USE_QT)
 	session = new G4UIQt(argc,argv);
+	std::cout<<"#################using QT###############"<<std::endl;
 #elif defined(G4UI_USE_WIN32)
 	session = new G4UIWin32();
+	std::cout<<"################using WIN32#############"<<std::endl;
 #elif defined(G4UI_USE_XM)
 	session = new G4UIXm(argc,argv);
+	std::cout<<"################using XM################"<<std::endl;
 #elif defined(G4UI_USE_TCSH)
 	session = new G4UIterminal(new G4UItcsh);
+	std::cout<<"##############using TCSH terminal#######"<<std::endl;
 #else
 	session = new G4UIterminal();
+	std::cout<<"###############using UIterminal########"<<std::endl;
 #endif
-
     }
 
 
@@ -161,10 +195,11 @@ int main(int argc, char** argv){
     G4VisManager* visManager = new G4VisExecutive;
     //visManager -> SetVerboseLevel (1);
     visManager ->Initialize();
+    std::cout<<"G4VIS_USE is defined, using visualization..."<<std::endl;
 #endif
-
     //get the pointer to the User Interface manager
     G4UImanager * UI = G4UImanager::GetUIpointer();
+
 
     if (session)   // Define UI session for interactive mode.
     {
@@ -174,6 +209,7 @@ int main(int argc, char** argv){
 #if defined(G4UI_USE_XM) || defined(G4UI_USE_WIN32) || defined(G4UI_USE_QT)
 	// Customize the G4UIXm,Win32 menubar with a macro file :
 	UI->ApplyCommand("/control/execute macros/gui.mac");
+	std::cout<<"gui.mac is used"<<std::endl;
 #endif
 
 	session->SessionStart();
@@ -191,16 +227,15 @@ int main(int argc, char** argv){
 
 	/* Copy contents of macro into buffer to be written out
 	 * into ROOT file
-	 * */
+	 **/ 
 
 	UI->ApplyCommand(command+fileName);
     }
 
-    //if one used the GUI then delete it
+/*    //if one used the GUI then delete it
 #ifdef G4VIS_USE
     delete visManager;
-#endif
-
-
-    return 0;
+#endif*/
+delete runManager;
+return  0;
 }
